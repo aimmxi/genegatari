@@ -1,6 +1,7 @@
 <div align="center">
-  <img src="./resources/icon.png.png" width="300" alt="Genegatari's icon" />
+  <img src="./resources/icon.png" width="250" alt="Genegatari's icon" />
 </div>
+<br>
 <h1 align="center">Genegatari</h1>
 <h2 align="center">An interactive procedural generation tool based on OpenGL, SDL and ImGui </h2>
 <h3 align="center"><a>https://www.aimmxi.xyz/</a></h3>
