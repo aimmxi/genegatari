@@ -1,0 +1,19 @@
+# Build artifacts
+/build/
+/CMakeFiles/
+/CMakeCache.txt
+/Makefile
+/*.cmake
+/*.o
+/*.obj
+/*.so
+/*.a
+/*.out
+*.class
+*.o
+*.bak
+
+# Others
+.vscode/
+bak/
+TODO
