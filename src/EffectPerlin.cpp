@@ -44,9 +44,9 @@ EffectPerlin::~EffectPerlin() {}
  * @param x The X coordinate
  * @param y The Y coordinate
  * @param z The Z coordinate
- * @return double Representation of the gradient at (X,Y).
+ * @return float Representation of the gradient at (X,Y).
  */
-double EffectPerlin::grad(int hash, double x, double y, double z) {
+float EffectPerlin::grad(int hash, float x, float y, float z) {
     switch(hash & 0xF)
     {
         case 0x0: return  x + y;
@@ -73,9 +73,9 @@ double EffectPerlin::grad(int hash, double x, double y, double z) {
  * @brief Applies a smooth ease-in curve to the value. Uses the polynomial 6t^5-15t^4+10t^3.
  * 
  * @param t The parameter to smooth out.
- * @return double The smoothed value
+ * @return float The smoothed value
  */
-double EffectPerlin::fade(double t) {
+float EffectPerlin::fade(float t) {
     return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
@@ -85,9 +85,9 @@ double EffectPerlin::fade(double t) {
  * @param a The first point to interpolate
  * @param b The second point to interpolate.
  * @param t The weight between A and B
- * @return double The interpolated value between A and B
+ * @return float The interpolated value between A and B
  */
-double EffectPerlin::lerp(double a, double b, double t) {
+float EffectPerlin::lerp(float a, float b, float t) {
     return a + t * (b - a);
 }
 
@@ -111,23 +111,23 @@ int EffectPerlin::inc(int num) {
  * @param x The X coordinate.
  * @param y The Y coordinate.
  * @param y The Z coordinate.
- * @return double The noise value.
+ * @return float The noise value.
  */
-double EffectPerlin::perlinNoise(double x, double y, double z) {
+float EffectPerlin::perlinNoise(float x, float y, float z) {
         // Converts x and y coordinates to integers and limit their range to 0-255 
 		int xi = (int)x & 255;
 		int yi = (int)y & 255;
 		int zi = (int)z & 255;
 
         // Calculates the fractional parts of x and y for interpolation
-		double xf = x-(int)x;
-		double yf = y-(int)y;
-		double zf = z-(int)z;
+		float xf = x-(int)x;
+		float yf = y-(int)y;
+		float zf = z-(int)z;
 
         // Interpolates the fractional part to get smoother results. This will get used as a weight for the final lerp
-		double u = fade(xf);
-		double v = fade(yf);
-		double w = fade(zf);
+		float u = fade(xf);
+		float v = fade(yf);
+		float w = fade(zf);
 															
         // The aab, aba, aab ... are the 8 corners of the cube that surrounds x, y, z
         // They store the hashed index of those 8 corners
@@ -145,7 +145,7 @@ double EffectPerlin::perlinNoise(double x, double y, double z) {
         // For each coordinate, a new prime value is obtained. 
         // This prime value corresponds to a linear interpolation made of two gradients and the fractional part of x
         // Each gradient is calculated with the corner's hash and the fractional parts of x and y
-		double x1, x2, y1, y2;
+		float x1, x2, y1, y2;
 		x1 = lerp(	grad (aaa, xf  , yf  , zf),
 					grad (baa, xf-1, yf  , zf),
 					u);
@@ -182,8 +182,8 @@ GLuint EffectPerlin::generateTexture(int width, int height) {
     // The gaps will get filled afterwards. This also speeds up calculations as less perlin noise is generated
     for (int y = 0; y < height; y += pixelFactor) {
         for (int x = 0; x < width; x += pixelFactor) {
-            double nx = x / (double)width, ny = y / (double)height;
-            double value = (perlinNoise(nx * distance, ny * distance, zStep) + 1.0) / 2.0 * 255;
+            float nx = x / (float)width, ny = y / (float)height;
+            float value = (perlinNoise(nx * distance, ny * distance, zStep) + 1.0) / 2.0 * 255;
             pixels[y * width + x] = static_cast<unsigned char>(value);
         }
     }
@@ -214,13 +214,11 @@ GLuint EffectPerlin::generateTexture(int width, int height) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-
-
     return texture;
 }
 
 
-//Public functions
+// Public functions
 // Override
 void EffectPerlin::render() {
     glEnable(GL_TEXTURE_2D);
