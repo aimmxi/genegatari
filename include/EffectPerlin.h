@@ -20,15 +20,19 @@ class EffectPerlin : public Effect {
 private:
     // Variables
     int p[PERLIN_MATRIX_SIZE];
-    GLuint texture;
-    int pixelFactor = 1;            // How pixelated the image should look
+    GLuint texture; 
+    float zStep = 0.0f;             // Current Z coordinate
+
+    // Controllable parameters
     float distance = 10.0f;         // "Distance" from the image.
+    float animationSpeed = 0;
+    int pixelFactor = 1;            // How pixelated the image should look
 
     // Texture calculation functions
-    double grad(int hash, double x, double y);
+    double grad(int hash, double x, double y, double z);
     double fade(double t);
     double lerp(double a, double b, double t);
-    double perlinNoise(double x, double y);
+    double perlinNoise(double x, double y, double z);
 	int inc(int num);
 
     // Texture rendering functions

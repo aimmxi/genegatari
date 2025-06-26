@@ -42,14 +42,31 @@ EffectPerlin::~EffectPerlin() {}
  * 
  * @param hash Hash of the two coordinates
  * @param x The X coordinate
- * @param y The y coordinate
+ * @param y The Y coordinate
+ * @param z The Z coordinate
  * @return double Representation of the gradient at (X,Y).
  */
-double EffectPerlin::grad(int hash, double x, double y) {
-    int h = hash & 15; 
-    double u = h < 8 ? x : y;
-    double v = h < 4 ? y : (h == 12 || h == 14 ? x : 0.0);
-    return ((h & 1 ? -1 : 1) * (u + v));
+double EffectPerlin::grad(int hash, double x, double y, double z) {
+    switch(hash & 0xF)
+    {
+        case 0x0: return  x + y;
+        case 0x1: return -x + y;
+        case 0x2: return  x - y;
+        case 0x3: return -x - y;
+        case 0x4: return  x + z;
+        case 0x5: return -x + z;
+        case 0x6: return  x - z;
+        case 0x7: return -x - z;
+        case 0x8: return  y + z;
+        case 0x9: return -y + z;
+        case 0xA: return  y - z;
+        case 0xB: return -y - z;
+        case 0xC: return  y + x;
+        case 0xD: return -y + z;
+        case 0xE: return  y - x;
+        case 0xF: return -y - z;
+        default: return 0;
+    }
 }
 
 /**
@@ -89,41 +106,64 @@ int EffectPerlin::inc(int num) {
 }
 
 /**
- * @brief Calculates the noise factor of a certain coordinate of the grid.
+ * @brief Calculates the noise factor of a certain coordinate of the grid. The Z axis will be used to animate the noise smoothly.
  * 
  * @param x The X coordinate.
- * @param y The y coordinate.
+ * @param y The Y coordinate.
+ * @param y The Z coordinate.
  * @return double The noise value.
  */
-double EffectPerlin::perlinNoise(double x, double y) {
-        // Converts x and y coordinates to integers and limit their range to 0-255 (They will be casted to byte in the future) 
-        int xi = (int)x & 255;
-        int yi = (int)y & 255;
+double EffectPerlin::perlinNoise(double x, double y, double z) {
+        // Converts x and y coordinates to integers and limit their range to 0-255 
+		int xi = (int)x & 255;
+		int yi = (int)y & 255;
+		int zi = (int)z & 255;
 
         // Calculates the fractional parts of x and y for interpolation
-        double xf = x - (int)x;
-        double yf = y - (int)y;
+		double xf = x-(int)x;
+		double yf = y-(int)y;
+		double zf = z-(int)z;
 
         // Interpolates the fractional part to get smoother results. This will get used as a weight for the final lerp
-        double u = fade(xf);
-        double v = fade(yf);
-
-        // The aa, ab, ba and bb represent the 4 corners of the square that surrounds x,y
-        // They store the hashed index of those 4 corners
-        int aa, ab, ba, bb;
-        aa = p[p[xi] + yi];
-        ab = p[p[xi] + inc(yi)];
-        ba = p[p[inc(xi)] + yi];
-        bb = p[p[inc(xi)] + inc(yi)];
+		double u = fade(xf);
+		double v = fade(yf);
+		double w = fade(zf);
+															
+        // The aab, aba, aab ... are the 8 corners of the cube that surrounds x, y, z
+        // They store the hashed index of those 8 corners
+		int aaa, aba, aab, abb, baa, bba, bab, bbb;
+		aaa = p[p[p[    xi ]+    yi ]+    zi ];
+		aba = p[p[p[    xi ]+inc(yi)]+    zi ];
+		aab = p[p[p[    xi ]+    yi ]+inc(zi)];
+		abb = p[p[p[    xi ]+inc(yi)]+inc(zi)];
+		baa = p[p[p[inc(xi)]+    yi ]+    zi ];
+		bba = p[p[p[inc(xi)]+inc(yi)]+    zi ];
+		bab = p[p[p[inc(xi)]+    yi ]+inc(zi)];
+		bbb = p[p[p[inc(xi)]+inc(yi)]+inc(zi)];
+	
 
         // For each coordinate, a new prime value is obtained. 
         // This prime value corresponds to a linear interpolation made of two gradients and the fractional part of x
         // Each gradient is calculated with the corner's hash and the fractional parts of x and y
-        double xp = lerp(grad(aa, xf, yf), grad(ba, xf - 1, yf), u);            // Top left and top right corners
-        double yp = lerp(grad(ab, xf, yf - 1), grad(bb, xf - 1, yf - 1), u);    // Bottom left and bottom right corners
+		double x1, x2, y1, y2;
+		x1 = lerp(	grad (aaa, xf  , yf  , zf),
+					grad (baa, xf-1, yf  , zf),
+					u);
+		x2 = lerp(	grad (aba, xf  , yf-1, zf),
+					grad (bba, xf-1, yf-1, zf),
+			          u);
+		y1 = lerp(x1, x2, v);
 
-        // Finally the top and the bottom get interpolated with v weight
-        return lerp(xp, yp, v);
+		x1 = lerp(	grad (aab, xf  , yf  , zf-1),
+					grad (bab, xf-1, yf  , zf-1),
+					u);
+		x2 = lerp(	grad (abb, xf  , yf-1, zf-1),
+		          	grad (bbb, xf-1, yf-1, zf-1),
+		          	u);
+		y2 = lerp (x1, x2, v);
+		
+		// return (lerp (y1, y2, w)+1)/2;	    // TODO mangle this return value to add some effects
+		return (lerp (y1, y2, w));	
 }
 
 
@@ -143,7 +183,7 @@ GLuint EffectPerlin::generateTexture(int width, int height) {
     for (int y = 0; y < height; y += pixelFactor) {
         for (int x = 0; x < width; x += pixelFactor) {
             double nx = x / (double)width, ny = y / (double)height;
-            double value = (perlinNoise(nx * distance, ny * distance) + 1.0) / 2.0 * 255;
+            double value = (perlinNoise(nx * distance, ny * distance, zStep) + 1.0) / 2.0 * 255;
             pixels[y * width + x] = static_cast<unsigned char>(value);
         }
     }
@@ -157,7 +197,9 @@ GLuint EffectPerlin::generateTexture(int width, int height) {
             }
         }
     }
-    exit;
+
+    // Increment the Z axis step with whatever speed is set
+    zStep = zStep + animationSpeed;
 
     GLuint texture;
     glGenTextures(1, &texture);
@@ -171,6 +213,8 @@ GLuint EffectPerlin::generateTexture(int width, int height) {
     // // Wrap texture coordinates
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+
 
     return texture;
 }
@@ -202,6 +246,9 @@ void EffectPerlin::render() {
     // Swap buffers
     SDL_GL_SwapWindow(SDL_GetWindowFromID(1));
     SDL_Delay(16);  // ~60 FPS
+
+    // TODO make this fancier
+    
 }
 
 // Override
@@ -209,6 +256,7 @@ void EffectPerlin::effectSettings() {
     if (ImGui::Begin("Perlin Effect", nullptr, ImGuiWindowFlags_NoCollapse)) {
         ImGui::Text("Perlin");
         ImGui::SliderFloat("Distance", &distance, 1.0f, 100.0f);
+        ImGui::SliderFloat("Animation Speed", &animationSpeed, 0.0f, 0.5f);
         ImGui::SliderInt("Pixel Factor", &pixelFactor, 1, 32);
         ImGui::End();
     }
