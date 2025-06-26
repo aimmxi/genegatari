@@ -9,6 +9,11 @@
 #define PERLIN_MATRIX_SIZE 512
 #define PERM_TABLE_SIZE 256
 
+#define RED 0
+#define GREEN 1
+#define BLUE 2
+#define ALPHA 3
+
 /**
  * @class EffectPerlin
  * @brief Controllable 2D Perlin Noise effect.
@@ -29,6 +34,10 @@ private:
     int pixelFactor = 2;            // How pixelated the image should look
     int quantizationFactor = 0;     // Applies quantization. The larger the value the more pronounced the discretization
 
+    float redStrength = 1.0f;
+    float blueStrength = 1.0f;
+    float greenStrength = 1.0f;
+
     // Perlin functions
     float grad(int hash, float x, float y, float z);
     float fade(float t);
@@ -37,7 +46,7 @@ private:
 	int inc(int num);
 
     // Texture processing and rendering functions
-    unsigned int byteToRGBA(unsigned char c);
+    unsigned int channelsToRGBA(unsigned char* c);
     unsigned int filter(unsigned char p);
     GLuint generateTexture(int sizeX, int sizeY);
     
