@@ -18,19 +18,19 @@ GUI::GUI() {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 
-    // GL context setup
-    const char* glsl_version = "#version 130";
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-
     // Create main window in a hidden state
     window = SDL_CreateWindow(NAME, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, INITIAL_WIDTH, INITIAL_HEIGHT, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
     SDL_GL_SetSwapInterval(1); // Enable vsync
 
+    // GLEW setuo
+    glewExperimental = GL_TRUE;
+    if (glewInit() != GLEW_OK) {
+        std::cerr << "GLEW initialization error" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    
     // Set SDL's icon
     // TODO Embed the icon in the application itself instead of using routes.
     // SDL_Surface* icon = IMG_Load("../resources/icon.png");
@@ -41,14 +41,16 @@ GUI::GUI() {
     // SDL_SetWindowIcon(window, icon);
     // SDL_FreeSurface(icon);
     
-    // Setup ImGui
+    // ImGui setup
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-
     ImGui::StyleColorsDark();
 
+    // Additional setuo
+    const char* glsl_version = "#version 130";
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     ImGui_ImplOpenGL3_Init(glsl_version);
+    glEnable(GL_TEXTURE_2D);
 }
 
 GUI::~GUI () {
@@ -56,6 +58,7 @@ GUI::~GUI () {
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
 
+    // TODO add GLEW and GLUT ?
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
     IMG_Quit();
@@ -121,6 +124,9 @@ void GUI::renderBackground(){
                 break;
             case 1:
                 e = new EffectTest();
+                break;
+            case 2:
+                e = new EffectPerlin();
                 break;
         }
 

@@ -3,6 +3,7 @@
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
+#include <GL/glew.h>
 #include <SDL.h>
 #include <SDL_opengl.h>
 #include <SDL_image.h>
@@ -12,6 +13,7 @@
 
 // Effects
 #include "EffectTest.h"
+#include "EffectPerlin.h"
 
 // Constants
 // Window
