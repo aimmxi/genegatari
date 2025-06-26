@@ -172,29 +172,39 @@ float EffectPerlin::perlinNoise(float x, float y, float z) {
  * @param c The byte.
  * @return unsigned int The byte's value repeated on the 4 bytes of an integer.
  */
-unsigned int EffectPerlin::byteToRGBA(unsigned char c) {
+unsigned int EffectPerlin::channelsToRGBA(unsigned char* c) {
     // Bit shifts the byte and concatenates the result
-    return (c << 24) | (c << 16) | (c << 8) | c;
+    return (c[ALPHA] << 24) | (c[BLUE] << 16) | (c[GREEN] << 8) | c[RED];
 }
 
 /**
- * @brief Applies filters to the specified 8 bit pixel.
+ * @brief Applies filters to the specified 8 bit pixel and returns a filtered 32 bit RGBA pixel
  * 
- * @param p The pixel
- * @return unsigned int 
+ * @param p The 8 bit pixel.
+ * @return unsigned int A 32 bit RGBA pixel.
  */
 unsigned int EffectPerlin::filter(unsigned char p) {
-    int rgba;       // Stores the final value as a 32 bit RGBA pixel
+   unsigned char channels[4]; // Stores the 4 channels (RGBA) of the pixel
 
     // The quantization gets applied
     if (quantizationFactor > 0) {
         p = p - (p % quantizationFactor);
     }
 
-    // The  is casted to a byte and then to an int that repeats that byte across it's 4 bytes for RGBA.
-    rgba = byteToRGBA(p);
+    // Individual color filters are applied
+    // Red
+    channels[RED] = p * redStrength;
 
-    return rgba;
+    // Green
+    channels[GREEN] = p * greenStrength;
+
+    // Blue
+    channels[BLUE] = p * blueStrength;
+
+    // Alpha
+    channels[ALPHA] = p;
+
+    return channelsToRGBA(channels);
 }
 
 /**
@@ -254,7 +264,6 @@ GLuint EffectPerlin::generateTexture(int width, int height) {
 // Public functions
 // Override
 void EffectPerlin::render() {
-    glEnable(GL_TEXTURE_2D);
     // Create the texture
     texture = generateTexture(1280, 720);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1.0f); // Disable anisotropic filtering
@@ -276,6 +285,11 @@ void EffectPerlin::render() {
 
     // Swap buffers
     SDL_GL_SwapWindow(SDL_GetWindowFromID(1));
+
+    // The texture gets deleted 
+    glDeleteTextures(1, &texture);
+
+    // Delete the texture
     SDL_Delay(16);  // ~60 FPS
 }
 
@@ -288,6 +302,10 @@ void EffectPerlin::effectSettings() {
         ImGui::SliderInt("Pixel Factor", &pixelFactor, 1, 32);
 
         ImGui::SliderInt("Quantization", &quantizationFactor, 1, 128);
+
+        ImGui::SliderFloat("Red Strength", &redStrength, 0, 1);
+        ImGui::SliderFloat("Green Strength", &greenStrength, 0, 1);
+        ImGui::SliderFloat("Blue Strength", &blueStrength, 0, 1);
         ImGui::End();
     }
 }
