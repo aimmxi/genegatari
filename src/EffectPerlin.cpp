@@ -143,7 +143,7 @@ GLuint EffectPerlin::generateTexture(int width, int height) {
     for (int y = 0; y < height; y += pixelFactor) {
         for (int x = 0; x < width; x += pixelFactor) {
             double nx = x / (double)width, ny = y / (double)height;
-            double value = (perlinNoise(nx * 10.0, ny * 10.0) + 1.0) / 2.0 * 255;
+            double value = (perlinNoise(nx * distance, ny * distance) + 1.0) / 2.0 * 255;
             pixels[y * width + x] = static_cast<unsigned char>(value);
         }
     }
@@ -173,7 +173,6 @@ GLuint EffectPerlin::generateTexture(int width, int height) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
     return texture;
-
 }
 
 
@@ -203,14 +202,14 @@ void EffectPerlin::render() {
     // Swap buffers
     SDL_GL_SwapWindow(SDL_GetWindowFromID(1));
     SDL_Delay(16);  // ~60 FPS
-
 }
 
 // Override
 void EffectPerlin::effectSettings() {
     if (ImGui::Begin("Perlin Effect", nullptr, ImGuiWindowFlags_NoCollapse)) {
         ImGui::Text("Perlin");
-        ImGui::SliderInt("Pixel Factor", &pixelFactor, 1, 32);  // Slider that controls the pixel factor
+        ImGui::SliderFloat("Distance", &distance, 1.0f, 100.0f);
+        ImGui::SliderInt("Pixel Factor", &pixelFactor, 1, 32);
         ImGui::End();
     }
 }

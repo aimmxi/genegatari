@@ -22,6 +22,7 @@ private:
     int p[PERLIN_MATRIX_SIZE];
     GLuint texture;
     int pixelFactor = 1;            // How pixelated the image should look
+    float distance = 10.0f;         // "Distance" from the image.
 
     // Texture calculation functions
     double grad(int hash, double x, double y);
