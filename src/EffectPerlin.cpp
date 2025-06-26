@@ -166,6 +166,26 @@ float EffectPerlin::perlinNoise(float x, float y, float z) {
 		return (lerp (y1, y2, w));	
 }
 
+/**
+ * @brief Takes a byte and repeats that value over the 4 bytes of a 32 bit integer. Used to convert single colors to RGBA.
+ * 
+ * @param c The byte.
+ * @return unsigned int The byte's value repeated on the 4 bytes of an integer.
+ */
+unsigned int EffectPerlin::byteToRGBA(unsigned char c) {
+    // Bit shifts the byte and concatenates the result
+    return (c << 24) | (c << 16) | (c << 8) | c;
+}
+
+/**
+ * @brief Applies filters to the selected pixel.
+ * 
+ * @param p The pixel
+ * @return unsigned int 
+ */
+unsigned int EffectPerlin::filter(unsigned int p) {
+    return p;
+}
 
 /**
  * @brief Generates a texture with the perlin noise.
@@ -175,16 +195,20 @@ float EffectPerlin::perlinNoise(float x, float y, float z) {
  * @return GLuint 
  */
 GLuint EffectPerlin::generateTexture(int width, int height) {
-    // An array of "pixels" is created
-    std::vector<unsigned char> pixels(width * height);
+    // An array of "pixels" is created and initiated to 0
+    std::vector<unsigned int> pixels(width * height, 0);
 
     // The pixels get filled with the perlin values. If pixelFactor is greater than 1, some gaps will be left.
     // The gaps will get filled afterwards. This also speeds up calculations as less perlin noise is generated
     for (int y = 0; y < height; y += pixelFactor) {
         for (int x = 0; x < width; x += pixelFactor) {
+            // The noise value is calculated
             float nx = x / (float)width, ny = y / (float)height;
             float value = (perlinNoise(nx * distance, ny * distance, zStep) + 1.0) / 2.0 * 255;
-            pixels[y * width + x] = static_cast<unsigned char>(value);
+
+            // The float is casted to a byte and then to an int that repeats that byte across it's 4 bytes for RGBA.
+            // The pixel is also filtered before getting stored
+            pixels[y * width + x] = filter(byteToRGBA(static_cast<unsigned char>(value)));
         }
     }
 
@@ -204,7 +228,7 @@ GLuint EffectPerlin::generateTexture(int width, int height) {
     GLuint texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, pixels.data());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
 
     // Set filtering to nearest neighbor (no smoothing)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -244,9 +268,6 @@ void EffectPerlin::render() {
     // Swap buffers
     SDL_GL_SwapWindow(SDL_GetWindowFromID(1));
     SDL_Delay(16);  // ~60 FPS
-
-    // TODO make this fancier
-    
 }
 
 // Override
