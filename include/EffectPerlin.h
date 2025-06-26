@@ -34,6 +34,8 @@ private:
     float lerp(float a, float b, float t);
     float perlinNoise(float x, float y, float z);
 	int inc(int num);
+    unsigned int byteToRGBA(unsigned char c);
+    unsigned int filter(unsigned int p);
 
     // Texture rendering functions
     GLuint generateTexture(int sizeX, int sizeY);
