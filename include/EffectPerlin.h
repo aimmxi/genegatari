@@ -21,24 +21,26 @@ private:
     // Variables
     int p[PERLIN_MATRIX_SIZE];
     GLuint texture; 
-    float zStep = 0.0f;             // Current Z coordinate
+    float zStep = 0.0f;             // Current Z coordinate. Gets incremented to simulate animation.
 
     // Controllable parameters
     float distance = 10.0f;         // "Distance" from the image.
-    float animationSpeed = 0;
-    int pixelFactor = 1;            // How pixelated the image should look
+    float animationSpeed = 0.02f;   // How fast zStep should be incremented per frame
+    int pixelFactor = 2;            // How pixelated the image should look
+    int quantizationFactor = 0;     // Applies quantization. The larger the value the more pronounced the discretization
 
-    // Texture calculation functions
+    // Perlin functions
     float grad(int hash, float x, float y, float z);
     float fade(float t);
     float lerp(float a, float b, float t);
     float perlinNoise(float x, float y, float z);
 	int inc(int num);
-    unsigned int byteToRGBA(unsigned char c);
-    unsigned int filter(unsigned int p);
 
-    // Texture rendering functions
+    // Texture processing and rendering functions
+    unsigned int byteToRGBA(unsigned char c);
+    unsigned int filter(unsigned char p);
     GLuint generateTexture(int sizeX, int sizeY);
+    
 public:
     // Constructor
     EffectPerlin();

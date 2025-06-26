@@ -178,13 +178,23 @@ unsigned int EffectPerlin::byteToRGBA(unsigned char c) {
 }
 
 /**
- * @brief Applies filters to the selected pixel.
+ * @brief Applies filters to the specified 8 bit pixel.
  * 
  * @param p The pixel
  * @return unsigned int 
  */
-unsigned int EffectPerlin::filter(unsigned int p) {
-    return p;
+unsigned int EffectPerlin::filter(unsigned char p) {
+    int rgba;       // Stores the final value as a 32 bit RGBA pixel
+
+    // The quantization gets applied
+    if (quantizationFactor > 0) {
+        p = p - (p % quantizationFactor);
+    }
+
+    // The  is casted to a byte and then to an int that repeats that byte across it's 4 bytes for RGBA.
+    rgba = byteToRGBA(p);
+
+    return rgba;
 }
 
 /**
@@ -206,9 +216,8 @@ GLuint EffectPerlin::generateTexture(int width, int height) {
             float nx = x / (float)width, ny = y / (float)height;
             float value = (perlinNoise(nx * distance, ny * distance, zStep) + 1.0) / 2.0 * 255;
 
-            // The float is casted to a byte and then to an int that repeats that byte across it's 4 bytes for RGBA.
-            // The pixel is also filtered before getting stored
-            pixels[y * width + x] = filter(byteToRGBA(static_cast<unsigned char>(value)));
+            // The float noise value is casted to a byte and filtered
+            pixels[y * width + x] = filter(static_cast<unsigned char>(value));
         }
     }
 
@@ -277,6 +286,8 @@ void EffectPerlin::effectSettings() {
         ImGui::SliderFloat("Distance", &distance, 1.0f, 100.0f);
         ImGui::SliderFloat("Animation Speed", &animationSpeed, 0.0f, 0.5f);
         ImGui::SliderInt("Pixel Factor", &pixelFactor, 1, 32);
+
+        ImGui::SliderInt("Quantization", &quantizationFactor, 1, 128);
         ImGui::End();
     }
 }
