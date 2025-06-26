@@ -29,10 +29,10 @@ private:
     int pixelFactor = 1;            // How pixelated the image should look
 
     // Texture calculation functions
-    double grad(int hash, double x, double y, double z);
-    double fade(double t);
-    double lerp(double a, double b, double t);
-    double perlinNoise(double x, double y, double z);
+    float grad(int hash, float x, float y, float z);
+    float fade(float t);
+    float lerp(float a, float b, float t);
+    float perlinNoise(float x, float y, float z);
 	int inc(int num);
 
     // Texture rendering functions
