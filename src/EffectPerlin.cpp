@@ -167,9 +167,9 @@ float EffectPerlin::perlinNoise(float x, float y, float z) {
 }
 
 /**
- * @brief Takes a byte and repeats that value over the 4 bytes of a 32 bit integer. Used to convert single colors to RGBA.
+ * @brief Converts an array of 4 RGBA bytes to an RGBA pixel.
  * 
- * @param c The byte.
+ * @param c The array of bytes.
  * @return unsigned int The byte's value repeated on the 4 bytes of an integer.
  */
 unsigned int EffectPerlin::channelsToRGBA(unsigned char* c) {
@@ -178,13 +178,13 @@ unsigned int EffectPerlin::channelsToRGBA(unsigned char* c) {
 }
 
 /**
- * @brief Applies filters to the specified 8 bit pixel and returns a filtered 32 bit RGBA pixel
+ * @brief Applies filters to the specified 8 bit pixel and returns a filtered 32 bit pixel
  * 
  * @param p The 8 bit pixel.
- * @return unsigned int A 32 bit RGBA pixel.
+ * @return unsigned int A 32 bit RGBA/HSLA pixel.
  */
 unsigned int EffectPerlin::filter(unsigned char p) {
-   unsigned char channels[4]; // Stores the 4 channels (RGBA) of the pixel
+    unsigned char channels[4]; // Stores the 4 channels (RGBA) of the pixel
 
     // The quantization gets applied
     if (quantizationFactor > 0) {
@@ -192,17 +192,61 @@ unsigned int EffectPerlin::filter(unsigned char p) {
     }
 
     // Individual color filters are applied
-    // Red
-    channels[RED] = p * redStrength;
+    // Simple RGBA
+    switch (colorMode) {
+        case RGBA:
+            channels[RED] = p * redStrength;
+            channels[GREEN] = p * greenStrength;
+            channels[BLUE] = p * blueStrength;
+            channels[ALPHA] = p;
+            break;
+        case HSLA:
+        float range = 1.0f / 6.0f;
+            /*
+            To represent an image using Hue instead of RGB let's consider 6 ranges:
+                0. Red is 255
+                1. Red is 255, Green is 255
+                2. Green is 255
+                3. Green is 255, Blue is 255
+                4. Blue is 255
+                5. Blue is 255, Red is 255
+            We can use the noise value to determine which RGB value combination should be assigned.
+            */
+            channels[RED] = 0;
+            channels[GREEN] = 0;
+            channels[BLUE] = 0;
+            channels[ALPHA] = 255;
 
-    // Green
-    channels[GREEN] = p * greenStrength;
-
-    // Blue
-    channels[BLUE] = p * blueStrength;
-
-    // Alpha
-    channels[ALPHA] = p;
+            // For ease of calculation, the noise value is normalized to [0,1]
+            float pn = ((float) p) / 255;
+            
+            if (pn <= range) {       // Range 0
+                channels[RED] = 255;
+                channels[GREEN] = (p / range) * 255;
+            } else if (pn <= range * 2){
+                channels[RED] = ((range * 2 - p) / range) * 255;
+                channels[GREEN] = 255;
+            } else if (pn <= range * 3){
+                channels[GREEN] = 255;
+                channels[BLUE] = (p - range * 2 / range) * 255;
+            } else if (pn <= range * 4){
+                channels[GREEN] = ( range * 4 - p / range) * 255;
+                channels[BLUE] = 255;
+            } else if (pn <= range * 5){
+                channels[RED] = ((p - range * 4) / range) * 255;
+                channels[BLUE] = 255;
+            } else {
+                channels[RED] = 255;
+                channels[BLUE] = ( range * 6 - p / range) * 255;
+            }
+            
+            // The strength boost gets applied
+            channels[RED] = channels[RED] * redStrength;
+            channels[GREEN] = channels[GREEN] * greenStrength;
+            channels[BLUE] = channels[BLUE] * blueStrength;
+            
+            break;
+    }
 
     return channelsToRGBA(channels);
 }
@@ -296,16 +340,49 @@ void EffectPerlin::render() {
 // Override
 void EffectPerlin::effectSettings() {
     if (ImGui::Begin("Perlin Effect", nullptr, ImGuiWindowFlags_NoCollapse)) {
-        ImGui::Text("Perlin");
+        ImGui::Text("Perlin Effect");
+        ImGui::Text("Original algorithm by Ken Perlin.");
+        ImGui::Text("Modifications by Adrian Biagioli, Joseph Gentle and AIMMXI.");
+        ImGui::Text("C++ adaptation and Genegatari's port by AIMMXI.");
+        ImGui::Text("");
+        
+        ImGui::Separator();
+        ImGui::Text(" > Basic Settings");
+        ImGui::Separator();
         ImGui::SliderFloat("Distance", &distance, 1.0f, 100.0f);
         ImGui::SliderFloat("Animation Speed", &animationSpeed, 0.0f, 0.5f);
         ImGui::SliderInt("Pixel Factor", &pixelFactor, 1, 32);
-
         ImGui::SliderInt("Quantization", &quantizationFactor, 1, 128);
 
-        ImGui::SliderFloat("Red Strength", &redStrength, 0, 1);
-        ImGui::SliderFloat("Green Strength", &greenStrength, 0, 1);
-        ImGui::SliderFloat("Blue Strength", &blueStrength, 0, 1);
+        ImGui::Text("");
+        ImGui::Separator();
+        ImGui::Text(" > Color Settings");
+        ImGui::Separator();
+        if (ImGui::BeginCombo("Color Mode", COLOR_MODES[colorMode].c_str())) {
+            // For each color mode
+            for (int i = 0; i < COLOR_MODES.size(); ++i) {
+                // A new item in the drop down gets inserted
+                if (ImGui::Selectable(COLOR_MODES[i].c_str(), (colorMode == i))) {
+                    colorMode = i;
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        // Color mode specific controls
+        switch (colorMode) {
+            case RGBA:
+                ImGui::SliderFloat("Red Strength", &redStrength, 0, 1);
+                ImGui::SliderFloat("Green Strength", &greenStrength, 0, 1);
+                ImGui::SliderFloat("Blue Strength", &blueStrength, 0, 1);
+                break;
+            case HSLA:
+                ImGui::SliderFloat("Red Strength", &redStrength, 0, 1);
+                ImGui::SliderFloat("Green Strength", &greenStrength, 0, 1);
+                ImGui::SliderFloat("Blue Strength", &blueStrength, 0, 1);
+                break;
+        }
+
         ImGui::End();
     }
 }
