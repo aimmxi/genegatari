@@ -5,10 +5,12 @@
 #include <iostream>
 #include <vector>
 #include <GL/glut.h>
+#include <algorithm>    // std::min
 
 #define PERLIN_MATRIX_SIZE 512
 #define PERM_TABLE_SIZE 256
 
+#define GLITCHY_NOISE 1
 #define RGBA 1
 #define HSLA 2
 
@@ -42,7 +44,8 @@ private:
     float animationSpeed = 0.02f;   // How fast zStep should be incremented per frame
     int pixelFactor = 2;            // How pixelated the image should look
     int quantizationFactor = 0;     // Applies quantization. The larger the value the more pronounced the discretization
-    float contrastFactor = 1.0f;     // Contrast
+    bool contrastOverflow = 0;      // Stops the colors from overflowing with high contrast ratios
+    float contrastFactor = 1.0f;    // Contrast
 
     int colorMode = 1;              // Keeps record of the current color mode
     float redStrength = 1.0f;
