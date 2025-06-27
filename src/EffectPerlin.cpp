@@ -191,6 +191,9 @@ unsigned int EffectPerlin::filter(unsigned char p) {
         p = p - (p % quantizationFactor);
     }
 
+    // The contrast gets applied
+    p = ((p - 128) * contrastFactor) + 128;
+
     // Individual color filters are applied
     // Simple RGBA
     switch (colorMode) {
@@ -353,6 +356,7 @@ void EffectPerlin::effectSettings() {
         ImGui::SliderFloat("Animation Speed", &animationSpeed, 0.0f, 0.5f);
         ImGui::SliderInt("Pixel Factor", &pixelFactor, 1, 32);
         ImGui::SliderInt("Quantization", &quantizationFactor, 1, 128);
+        ImGui::SliderFloat("Contrast", &contrastFactor, 0.0f, 4.0f);
 
         ImGui::Text("");
         ImGui::Separator();
