@@ -225,22 +225,22 @@ unsigned int EffectPerlin::filter(unsigned char p) {
             
             if (pn <= range) {       // Range 0
                 channels[RED] = 255;
-                channels[GREEN] = (p / range) * 255;
+                channels[GREEN] = (pn / range) * 255;
             } else if (pn <= range * 2){
-                channels[RED] = ((range * 2 - p) / range) * 255;
+                channels[RED] = ((range * 2 - pn) / range) * 255;
                 channels[GREEN] = 255;
             } else if (pn <= range * 3){
                 channels[GREEN] = 255;
-                channels[BLUE] = (p - range * 2 / range) * 255;
+                channels[BLUE] = ((pn - range * 2) / range) * 255;
             } else if (pn <= range * 4){
-                channels[GREEN] = ( range * 4 - p / range) * 255;
+                channels[GREEN] = ((range * 4 - pn) / range) * 255;
                 channels[BLUE] = 255;
             } else if (pn <= range * 5){
-                channels[RED] = ((p - range * 4) / range) * 255;
+                channels[RED] = ((pn - range * 4) / range) * 255;
                 channels[BLUE] = 255;
             } else {
                 channels[RED] = 255;
-                channels[BLUE] = ( range * 6 - p / range) * 255;
+                channels[BLUE] = ((range * 6 - pn) / range) * 255;
             }
             
             // The strength boost gets applied
