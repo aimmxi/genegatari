@@ -1,7 +1,7 @@
 #pragma once
 
 #include <GL/glew.h>
-#include "Effect.h"  // Derived from Effect
+#include "Effect.h"     // Derived from Effect
 #include <iostream>
 #include <vector>
 #include <GL/glut.h>
@@ -42,6 +42,7 @@ private:
     float animationSpeed = 0.02f;   // How fast zStep should be incremented per frame
     int pixelFactor = 2;            // How pixelated the image should look
     int quantizationFactor = 0;     // Applies quantization. The larger the value the more pronounced the discretization
+    float contrastFactor = 1.0f;     // Contrast
 
     int colorMode = 1;              // Keeps record of the current color mode
     float redStrength = 1.0f;
