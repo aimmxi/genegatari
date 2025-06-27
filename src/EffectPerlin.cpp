@@ -192,7 +192,13 @@ unsigned int EffectPerlin::filter(unsigned char p) {
     }
 
     // The contrast gets applied
-    p = ((p - 128) * contrastFactor) + 128;
+    if (contrastOverflow) {
+        p = ((p - 128) * contrastFactor + 128);
+    } else {
+        int contrast = ((int) p - 128 ) * contrastFactor + 128;
+        contrast = std::min(contrast, 255);
+        p = std::max(contrast, 0);
+    }
 
     // Individual color filters are applied
     // Simple RGBA
@@ -313,8 +319,7 @@ GLuint EffectPerlin::generateTexture(int width, int height) {
 void EffectPerlin::render() {
     // Create the texture
     texture = generateTexture(1280, 720);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1.0f); // Disable anisotropic filtering
-
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1.0f); // Disable anisotropic filtering
 
     // Set the background color and clear the previous buffer
     glClear(GL_COLOR_BUFFER_BIT);
@@ -356,7 +361,8 @@ void EffectPerlin::effectSettings() {
         ImGui::SliderFloat("Animation Speed", &animationSpeed, 0.0f, 0.5f);
         ImGui::SliderInt("Pixel Factor", &pixelFactor, 1, 32);
         ImGui::SliderInt("Quantization", &quantizationFactor, 1, 128);
-        ImGui::SliderFloat("Contrast", &contrastFactor, 0.0f, 4.0f);
+        ImGui::Checkbox("Contrast Overflow", &contrastOverflow);
+        ImGui::SliderFloat("Contrast", &contrastFactor, 0.0f, 10.0f);
 
         ImGui::Text("");
         ImGui::Separator();
@@ -373,18 +379,11 @@ void EffectPerlin::effectSettings() {
             ImGui::EndCombo();
         }
 
-        // Color mode specific controls
-        switch (colorMode) {
-            case RGBA:
-                ImGui::SliderFloat("Red Strength", &redStrength, 0, 1);
-                ImGui::SliderFloat("Green Strength", &greenStrength, 0, 1);
-                ImGui::SliderFloat("Blue Strength", &blueStrength, 0, 1);
-                break;
-            case HSLA:
-                ImGui::SliderFloat("Red Strength", &redStrength, 0, 1);
-                ImGui::SliderFloat("Green Strength", &greenStrength, 0, 1);
-                ImGui::SliderFloat("Blue Strength", &blueStrength, 0, 1);
-                break;
+        // Color mode specific controls. The glitchy mode cannot be controlled because of the way it is generated.
+        if (colorMode != GLITCHY_NOISE) {
+            ImGui::SliderFloat("Red Strength", &redStrength, 0, 1);
+            ImGui::SliderFloat("Green Strength", &greenStrength, 0, 1);
+            ImGui::SliderFloat("Blue Strength", &blueStrength, 0, 1);
         }
 
         ImGui::End();
