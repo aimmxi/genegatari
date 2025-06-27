@@ -9,9 +9,17 @@
 #define PERLIN_MATRIX_SIZE 512
 #define PERM_TABLE_SIZE 256
 
+#define RGBA 1
+#define HSLA 2
+
 #define RED 0
 #define GREEN 1
 #define BLUE 2
+#define ALPHA 3
+
+#define HUE 0
+#define SATURATION 1
+#define VALUE 2
 #define ALPHA 3
 
 /**
@@ -24,6 +32,7 @@
 class EffectPerlin : public Effect {
 private:
     // Variables
+    const std::vector<std::string> COLOR_MODES = { "GLITCHY NOISE", "RGB", "HUE" };
     int p[PERLIN_MATRIX_SIZE];
     GLuint texture; 
     float zStep = 0.0f;             // Current Z coordinate. Gets incremented to simulate animation.
@@ -34,6 +43,7 @@ private:
     int pixelFactor = 2;            // How pixelated the image should look
     int quantizationFactor = 0;     // Applies quantization. The larger the value the more pronounced the discretization
 
+    int colorMode = 1;              // Keeps record of the current color mode
     float redStrength = 1.0f;
     float blueStrength = 1.0f;
     float greenStrength = 1.0f;
