@@ -30,6 +30,10 @@ private:
     bool isFullscreen = false;
     int currentEffect = 0;
 
+    // FPS counter
+    float frameTime = 0.0f;
+    unsigned int lastTime = 0;
+    unsigned int fps = 0;
 
     void mainWindow();
 

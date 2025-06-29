@@ -67,10 +67,22 @@ GUI::~GUI () {
  * @brief Renders the main window.
  */
 void GUI::mainWindow() {
-    if (ImGui::Begin("General settings", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize)) {
+    // Calculate FPS
+    unsigned int currentTime = SDL_GetTicks();
+    frameTime = (currentTime - lastTime) / 1000.0f;     // ms to s
+    lastTime = currentTime;
+    fps = static_cast<int>(1.0f / frameTime);
+
+    if (ImGui::Begin("General settings", nullptr, ImGuiWindowFlags_NoCollapse)) {
         ImGui::Text("Welcome to the general settings menu.");
         ImGui::Text(" > To toggle the GUI press 'g'");
         ImGui::Text(" > To toggle fullscreen press 'f'");
+
+        ImGui::Text("");
+        ImGui::Separator();
+        ImGui::Text("");
+
+        ImGui::Text("FPS: %d", fps);
 
         ImGui::Text("");
         ImGui::Separator();
