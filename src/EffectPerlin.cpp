@@ -273,6 +273,7 @@ void EffectPerlin::postFilter(std::vector<unsigned int>(&po)[], std::vector<unsi
     int bts = (currentFrame - blueTimeShift + MAX_TIME_SHIFT) % MAX_TIME_SHIFT;
 
     // The position shift gets applied
+    #pragma omp parallel for private(redPosShiftPixel, greenPosShiftPixel, bluePosShiftPixel, currentPixel)
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             // The current pixel is decomposed
@@ -316,6 +317,7 @@ GLuint EffectPerlin::generateTexture(int width, int height) {
 
     // The pixels get filled with the perlin values. If pixelFactor is greater than 1, some gaps will be left.
     // The gaps will get filled afterwards. This also speeds up calculations as less perlin noise is generated
+    #pragma omp parallel for 
     for (int y = 0; y < heightShift; y += pixelFactor) {
         for (int x = 0; x < widthShift; x += pixelFactor) {
             // The noise value is calculated
@@ -329,6 +331,7 @@ GLuint EffectPerlin::generateTexture(int width, int height) {
 
     // The gaps get filled if the pixel factor is greater than 1
     if (pixelFactor > 1) {
+        #pragma omp parallel for 
         for (int y = 0; y < heightShift; y++) {
             for (int x = 0; x < widthShift; x++) {
                 // The gaps are filled with the top-leftmost pixel that has noise
