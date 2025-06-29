@@ -166,24 +166,15 @@ float EffectPerlin::perlinNoise(float x, float y, float z) {
 		return (lerp (y1, y2, w));	
 }
 
-/**
- * @brief Converts an array of 4 RGBA bytes to an RGBA pixel.
- * 
- * @param c The array of bytes.
- * @return unsigned int The byte's value repeated on the 4 bytes of an integer.
- */
-unsigned int EffectPerlin::channelsToRGBA(unsigned char* c) {
-    // Bit shifts the byte and concatenates the result
-    return (c[ALPHA] << 24) | (c[BLUE] << 16) | (c[GREEN] << 8) | c[RED];
-}
+
 
 /**
- * @brief Applies filters to the specified 8 bit pixel and returns a filtered 32 bit pixel
+ * @brief Applies filters to the specified 8 bit pixel and returns a filtered 32 bit pixel.
  * 
  * @param p The 8 bit pixel.
  * @return unsigned int A 32 bit RGBA/HSLA pixel.
  */
-unsigned int EffectPerlin::filter(unsigned char p) {
+unsigned int EffectPerlin::preFilter(unsigned char p) {
     unsigned char channels[4]; // Stores the 4 channels (RGBA) of the pixel
 
     // The quantization gets applied
@@ -261,38 +252,79 @@ unsigned int EffectPerlin::filter(unsigned char p) {
 }
 
 /**
+ * @brief Applies filters to the entire texture after it has fully been generated.
+ * 
+ * @param pd The post-filtered (destination) matrix of pixels
+ * @param po The unfiltered (original) matrix of pixels
+ * @param width The width of the unfiltered matrix without the extra shift borders
+ * @param width The height of the unfiltered matrix without the extra shift borders
+ */
+void EffectPerlin::postFilter(std::vector<unsigned int>& po, std::vector<unsigned int>& pd, int width, int height) {
+    unsigned char currentPixel[4];                                                      // The 4 channels (RGBA) of the current pixel
+    unsigned char redPosShiftPixel[4], greenPosShiftPixel[4], bluePosShiftPixel[4];     // The 4 channels of the pixels that get shifted
+
+    // The position shift gets applied
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            // The current pixel is decomposed
+            RGBAToChannels(po[y * (width + MAX_POS_SHIFT) + x], currentPixel);
+
+            // The pixels from the shift are also decompressed
+            RGBAToChannels(po[(y + redPosShift) * (width + MAX_POS_SHIFT) + x + redPosShift], redPosShiftPixel);
+            RGBAToChannels(po[(y + greenPosShift) * (width + MAX_POS_SHIFT) + x + greenPosShift], greenPosShiftPixel);
+            RGBAToChannels(po[(y + bluePosShift) * (width + MAX_POS_SHIFT) + x + bluePosShift], bluePosShiftPixel);
+            
+            // The current pixel is modified with the shift values and reconstructed
+            currentPixel[RED] = redPosShiftPixel[RED];
+            currentPixel[GREEN] = greenPosShiftPixel[GREEN];
+            currentPixel[BLUE] = bluePosShiftPixel[BLUE];
+
+            pd[y * width + x] = channelsToRGBA(currentPixel);
+        }
+    }
+}
+
+/**
  * @brief Generates a texture with the perlin noise.
  * 
- * @param width 
- * @param height 
+ * @param width The width of the texture
+ * @param height The height of the texture
  * @return GLuint 
  */
 GLuint EffectPerlin::generateTexture(int width, int height) {
     // An array of "pixels" is created and initiated to 0
     std::vector<unsigned int> pixels(width * height, 0);
 
+    // An array with some extra size is calculated to make the color shift borders look normal
+    int widthShift = width + MAX_POS_SHIFT;
+    int heightShift = height + MAX_POS_SHIFT;
+    std::vector<unsigned int> pixelsShift(widthShift * heightShift, 0);
+
     // The pixels get filled with the perlin values. If pixelFactor is greater than 1, some gaps will be left.
     // The gaps will get filled afterwards. This also speeds up calculations as less perlin noise is generated
-    for (int y = 0; y < height; y += pixelFactor) {
-        for (int x = 0; x < width; x += pixelFactor) {
+    for (int y = 0; y < heightShift; y += pixelFactor) {
+        for (int x = 0; x < widthShift; x += pixelFactor) {
             // The noise value is calculated
-            float nx = x / (float)width, ny = y / (float)height;
+            float nx = x / (float)widthShift, ny = y / (float)heightShift;
             float value = (perlinNoise(nx * distance, ny * distance, zStep) + 1.0) / 2.0 * 255;
 
             // The float noise value is casted to a byte and filtered
-            pixels[y * width + x] = filter(static_cast<unsigned char>(value));
+            pixelsShift[y * widthShift + x] = preFilter(static_cast<unsigned char>(value));
         }
     }
 
     // The gaps get filled if the pixel factor is greater than 1
     if (pixelFactor > 1) {
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
+        for (int y = 0; y < heightShift; y++) {
+            for (int x = 0; x < widthShift; x++) {
                 // The gaps are filled with the top-leftmost pixel that has noise
-                 pixels[y * width + x] = pixels[(y - (y % pixelFactor)) * width + (x - (x % pixelFactor))];
+                 pixelsShift[y * widthShift + x] = pixelsShift[(y - (y % pixelFactor)) * widthShift + (x - (x % pixelFactor))];
             }
         }
     }
+
+    // After the frame gets generated, a post filter gets applied
+    postFilter(pixelsShift, pixels, width, height);
 
     // Increment the Z axis step with whatever speed is set
     zStep = zStep + animationSpeed;
@@ -318,8 +350,7 @@ GLuint EffectPerlin::generateTexture(int width, int height) {
 // Override
 void EffectPerlin::render() {
     // Create the texture
-    texture = generateTexture(1280, 720);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1.0f); // Disable anisotropic filtering
+    texture = generateTexture(textureWidth, textureHeight);
 
     // Set the background color and clear the previous buffer
     glClear(GL_COLOR_BUFFER_BIT);
@@ -340,9 +371,6 @@ void EffectPerlin::render() {
 
     // The texture gets deleted 
     glDeleteTextures(1, &texture);
-
-    // Delete the texture
-    SDL_Delay(16);  // ~60 FPS
 }
 
 // Override
@@ -357,6 +385,8 @@ void EffectPerlin::effectSettings() {
         ImGui::Separator();
         ImGui::Text(" > Basic Settings");
         ImGui::Separator();
+        ImGui::SliderInt("Texture Width", &textureWidth, 200, 2000);
+        ImGui::SliderInt("Texture Height", &textureHeight, 200, 2000);
         ImGui::SliderFloat("Distance", &distance, 1.0f, 100.0f);
         ImGui::SliderFloat("Animation Speed", &animationSpeed, 0.0f, 0.5f);
         ImGui::SliderInt("Pixel Factor", &pixelFactor, 1, 32);
@@ -384,10 +414,11 @@ void EffectPerlin::effectSettings() {
             ImGui::SliderFloat("Red Strength", &redStrength, 0, 1);
             ImGui::SliderFloat("Green Strength", &greenStrength, 0, 1);
             ImGui::SliderFloat("Blue Strength", &blueStrength, 0, 1);
+            ImGui::SliderInt("Red Position Shift", &redPosShift, 0, MAX_POS_SHIFT);
+            ImGui::SliderInt("Green PositionS Shift", &greenPosShift, 0, MAX_POS_SHIFT);
+            ImGui::SliderInt("Blue Position Shift", &bluePosShift, 0,MAX_POS_SHIFT);
         }
 
         ImGui::End();
     }
 }
-
-

@@ -1,23 +1,16 @@
 #pragma once
 
-#include <GL/glew.h>
 #include "Effect.h"     // Derived from Effect
-#include <iostream>
 #include <vector>
-#include <GL/glut.h>
 #include <algorithm>    // std::min
 
 #define PERLIN_MATRIX_SIZE 512
 #define PERM_TABLE_SIZE 256
+#define MAX_POS_SHIFT 64
 
-#define GLITCHY_NOISE 1
+#define GLITCHY_NOISE 0
 #define RGBA 1
 #define HSLA 2
-
-#define RED 0
-#define GREEN 1
-#define BLUE 2
-#define ALPHA 3
 
 #define HUE 0
 #define SATURATION 1
@@ -40,6 +33,8 @@ private:
     float zStep = 0.0f;             // Current Z coordinate. Gets incremented to simulate animation.
 
     // Controllable parameters
+    int textureWidth = 500;
+    int textureHeight = 500;
     float distance = 10.0f;         // "Distance" from the image.
     float animationSpeed = 0.02f;   // How fast zStep should be incremented per frame
     int pixelFactor = 2;            // How pixelated the image should look
@@ -51,6 +46,10 @@ private:
     float redStrength = 1.0f;
     float blueStrength = 1.0f;
     float greenStrength = 1.0f;
+    int redPosShift = 0;
+    int greenPosShift = 0;
+    int bluePosShift = 0;
+    
 
     // Perlin functions
     float grad(int hash, float x, float y, float z);
@@ -60,8 +59,8 @@ private:
 	int inc(int num);
 
     // Texture processing and rendering functions
-    unsigned int channelsToRGBA(unsigned char* c);
-    unsigned int filter(unsigned char p);
+    unsigned int preFilter(unsigned char p);
+    void postFilter(std::vector<unsigned int>& po, std::vector<unsigned int>& pd, int width, int height);
     GLuint generateTexture(int sizeX, int sizeY);
     
 public:
