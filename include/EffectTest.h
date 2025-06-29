@@ -1,9 +1,6 @@
 #pragma once
 
 #include "Effect.h"  // Derived from Effect
-#include <iostream>
-#include <GL/glut.h>
-
 
 /**
  * @class EffectTest

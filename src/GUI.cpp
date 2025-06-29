@@ -48,6 +48,9 @@ GUI::GUI() {
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     ImGui_ImplOpenGL3_Init(glsl_version);
     glEnable(GL_TEXTURE_2D);
+
+    // The none effect is created
+    e = new EffectNone();
 }
 
 GUI::~GUI () {
@@ -129,6 +132,7 @@ void GUI::renderBackground(){
         // The new effect is instantiated
         switch (currentEffect) {
             case 0:
+                e = new EffectNone();
                 break;
             case 1:
                 e = new EffectTest();

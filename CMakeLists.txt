@@ -11,6 +11,7 @@ include_directories(lib/imgui/backends)
 # NuCachis project source files
 set(PROJECT_SOURCES
     src/Common.cpp
+    src/EffectNone.cpp
     src/EffectTest.cpp
     src/EffectPerlin.cpp
     src/GUI.cpp
