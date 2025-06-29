@@ -4,6 +4,7 @@
 #include <vector>
 
 // Effects
+#include "EffectNone.h"
 #include "EffectTest.h"
 #include "EffectPerlin.h"
 

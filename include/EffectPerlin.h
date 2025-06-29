@@ -56,7 +56,6 @@ private:
     int redTimeShift = 0;
     int greenTimeShift = 0;
     int blueTimeShift = 0;
-    
 
     // Perlin functions
     float grad(int hash, float x, float y, float z);
