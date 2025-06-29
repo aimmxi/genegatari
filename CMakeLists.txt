@@ -34,6 +34,9 @@ add_executable(genegatari
     ${IMGUI_SOURCES}
 )
 
+# Flags
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+
 # Link SDL2 and OpenGL
 find_package(OpenGL REQUIRED)
 find_package(SDL2 REQUIRED)
