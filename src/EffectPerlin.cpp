@@ -279,9 +279,13 @@ void EffectPerlin::postFilter(std::vector<unsigned int>(&po)[], std::vector<unsi
             RGBAToChannels(po[currentFrame][y * (width + MAX_POS_SHIFT) + x], currentPixel);
 
             // The pixels from the shift are also decompressed
-            RGBAToChannels(po[rts][(y + redPosShift) * (width + MAX_POS_SHIFT) + x + redPosShift], redPosShiftPixel);
-            RGBAToChannels(po[gts][(y + greenPosShift) * (width + MAX_POS_SHIFT) + x + greenPosShift], greenPosShiftPixel);
-            RGBAToChannels(po[bts][(y + bluePosShift) * (width + MAX_POS_SHIFT) + x + bluePosShift], bluePosShiftPixel);
+            // Before the effect is applied, the sizes of the historic array are checked just in case the width/height have changed
+            if (po[rts].size() == po[currentFrame].size())
+                RGBAToChannels(po[rts][(y + redPosShift) * (width + MAX_POS_SHIFT) + x + redPosShift], redPosShiftPixel);
+            if (po[gts].size() == po[currentFrame].size())
+                RGBAToChannels(po[gts][(y + greenPosShift) * (width + MAX_POS_SHIFT) + x + greenPosShift], greenPosShiftPixel);
+            if (po[bts].size() == po[currentFrame].size())
+                RGBAToChannels(po[bts][(y + bluePosShift) * (width + MAX_POS_SHIFT) + x + bluePosShift], bluePosShiftPixel);
             
             // The current pixel is modified with the shift values and reconstructed
             currentPixel[RED] = redPosShiftPixel[RED];
@@ -373,6 +377,7 @@ void EffectPerlin::render() {
     glBindTexture(GL_TEXTURE_2D, texture);
 
     // Cover the entire screen with a quadrilateral that takes up the whole window
+    glColor3f(1.0f, 1.0f, 1.0f);  // Color white
     glBegin(GL_QUADS);
     glTexCoord2f(0.0f, 0.0f); glVertex2f(-1.0f, -1.0f);
     glTexCoord2f(1.0f, 0.0f); glVertex2f( 1.0f, -1.0f);
