@@ -7,6 +7,7 @@
 #define PERLIN_MATRIX_SIZE 512
 #define PERM_TABLE_SIZE 256
 #define MAX_POS_SHIFT 64
+#define MAX_TIME_SHIFT 64
 
 #define GLITCHY_NOISE 0
 #define RGBA 1
@@ -31,6 +32,8 @@ private:
     int p[PERLIN_MATRIX_SIZE];
     GLuint texture; 
     float zStep = 0.0f;             // Current Z coordinate. Gets incremented to simulate animation.
+    std::vector<unsigned int> frameHistory[MAX_TIME_SHIFT]; // Stores MAX_TIME_SHIFT previous frames. It behaves sort of sort of like a queue
+    int currentFrame = 0;           // Stores where the current frame should get stored in the frameHistory structure.
 
     // Controllable parameters
     int textureWidth = 500;
@@ -50,6 +53,9 @@ private:
     int redPosShift = 0;
     int greenPosShift = 0;
     int bluePosShift = 0;
+    int redTimeShift = 0;
+    int greenTimeShift = 0;
+    int blueTimeShift = 0;
     
 
     // Perlin functions
@@ -61,7 +67,7 @@ private:
 
     // Texture processing and rendering functions
     unsigned int preFilter(unsigned char p);
-    void postFilter(std::vector<unsigned int>& po, std::vector<unsigned int>& pd, int width, int height);
+    void postFilter(std::vector<unsigned int>(&po)[], std::vector<unsigned int>& pd, int width, int height);
     GLuint generateTexture(int sizeX, int sizeY);
     
 public:

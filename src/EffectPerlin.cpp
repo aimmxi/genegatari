@@ -258,25 +258,30 @@ unsigned int EffectPerlin::preFilter(unsigned char p) {
 /**
  * @brief Applies filters to the entire texture after it has fully been generated.
  * 
- * @param pd The post-filtered (destination) matrix of pixels
- * @param po The unfiltered (original) matrix of pixels
- * @param width The width of the unfiltered matrix without the extra shift borders
- * @param width The height of the unfiltered matrix without the extra shift borders
+ * @param po The array that contains the history of frames
+ * @param pd Where the processed frame will be stored
+ * @param width The width without the extra position shift borders
+ * @param height The height without the extra position shift borders
  */
-void EffectPerlin::postFilter(std::vector<unsigned int>& po, std::vector<unsigned int>& pd, int width, int height) {
+void EffectPerlin::postFilter(std::vector<unsigned int>(&po)[], std::vector<unsigned int>& pd, int width, int height) {
     unsigned char currentPixel[4];                                                      // The 4 channels (RGBA) of the current pixel
     unsigned char redPosShiftPixel[4], greenPosShiftPixel[4], bluePosShiftPixel[4];     // The 4 channels of the pixels that get shifted
+
+    // The time shift indexes get calculated
+    int rts = (currentFrame - redTimeShift + MAX_TIME_SHIFT) % MAX_TIME_SHIFT;
+    int gts = (currentFrame - greenTimeShift + MAX_TIME_SHIFT) % MAX_TIME_SHIFT;
+    int bts = (currentFrame - blueTimeShift + MAX_TIME_SHIFT) % MAX_TIME_SHIFT;
 
     // The position shift gets applied
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             // The current pixel is decomposed
-            RGBAToChannels(po[y * (width + MAX_POS_SHIFT) + x], currentPixel);
+            RGBAToChannels(po[currentFrame][y * (width + MAX_POS_SHIFT) + x], currentPixel);
 
             // The pixels from the shift are also decompressed
-            RGBAToChannels(po[(y + redPosShift) * (width + MAX_POS_SHIFT) + x + redPosShift], redPosShiftPixel);
-            RGBAToChannels(po[(y + greenPosShift) * (width + MAX_POS_SHIFT) + x + greenPosShift], greenPosShiftPixel);
-            RGBAToChannels(po[(y + bluePosShift) * (width + MAX_POS_SHIFT) + x + bluePosShift], bluePosShiftPixel);
+            RGBAToChannels(po[rts][(y + redPosShift) * (width + MAX_POS_SHIFT) + x + redPosShift], redPosShiftPixel);
+            RGBAToChannels(po[gts][(y + greenPosShift) * (width + MAX_POS_SHIFT) + x + greenPosShift], greenPosShiftPixel);
+            RGBAToChannels(po[bts][(y + bluePosShift) * (width + MAX_POS_SHIFT) + x + bluePosShift], bluePosShiftPixel);
             
             // The current pixel is modified with the shift values and reconstructed
             currentPixel[RED] = redPosShiftPixel[RED];
@@ -300,9 +305,10 @@ GLuint EffectPerlin::generateTexture(int width, int height) {
     std::vector<unsigned int> pixels(width * height, 0);
 
     // An array with some extra size is calculated to make the color shift borders look normal
+    // It gets saved to the frame history structure
     int widthShift = width + MAX_POS_SHIFT;
     int heightShift = height + MAX_POS_SHIFT;
-    std::vector<unsigned int> pixelsShift(widthShift * heightShift, 0);
+    frameHistory[currentFrame] = std::vector<unsigned int>(widthShift * heightShift, 0);
 
     // The pixels get filled with the perlin values. If pixelFactor is greater than 1, some gaps will be left.
     // The gaps will get filled afterwards. This also speeds up calculations as less perlin noise is generated
@@ -313,7 +319,7 @@ GLuint EffectPerlin::generateTexture(int width, int height) {
             float value = (perlinNoise(nx * distance, ny * distance, zStep) + 1.0) / 2.0 * 255;
 
             // The float noise value is casted to a byte and filtered
-            pixelsShift[y * widthShift + x] = preFilter(static_cast<unsigned char>(value));
+            frameHistory[currentFrame][y * widthShift + x] = preFilter(static_cast<unsigned char>(value));
         }
     }
 
@@ -322,21 +328,25 @@ GLuint EffectPerlin::generateTexture(int width, int height) {
         for (int y = 0; y < heightShift; y++) {
             for (int x = 0; x < widthShift; x++) {
                 // The gaps are filled with the top-leftmost pixel that has noise
-                 pixelsShift[y * widthShift + x] = pixelsShift[(y - (y % pixelFactor)) * widthShift + (x - (x % pixelFactor))];
+                frameHistory[currentFrame][y * widthShift + x] = frameHistory[currentFrame][(y - (y % pixelFactor)) * widthShift + (x - (x % pixelFactor))];
             }
         }
     }
 
     // After the frame gets generated, a post filter gets applied
-    postFilter(pixelsShift, pixels, width, height);
+    postFilter(frameHistory, pixels, width, height);
 
     // Increment the Z axis step with whatever speed is set
     zStep = zStep + animationSpeed;
 
+    // Generate the texture
     GLuint texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+
+    // After the texture has been generated, the current frame gets incremented
+    currentFrame = (currentFrame + 1) % MAX_TIME_SHIFT;
 
     // Set filtering to nearest neighbor (no smoothing)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -395,9 +405,7 @@ void EffectPerlin::effectSettings() {
         ImGui::SliderFloat("Animation Speed", &animationSpeed, 0.0f, 0.5f);
         ImGui::SliderInt("Pixel Factor", &pixelFactor, 1, 32);
         ImGui::SliderInt("Quantization", &quantizationFactor, 1, 128);
-        ImGui::Checkbox("Contrast Overflow", &contrastOverflow);
-        ImGui::SliderFloat("Contrast", &contrastFactor, 0.0f, 10.0f);
-        ImGui::SliderFloat("Brightness", &brightnessFactor, 0.0f, 5.0f);
+        
 
         ImGui::Text("");
         ImGui::Separator();
@@ -416,12 +424,27 @@ void EffectPerlin::effectSettings() {
 
         // Color mode specific controls. The glitchy mode cannot be controlled because of the way it is generated.
         if (colorMode != GLITCHY_NOISE) {
+            ImGui::Checkbox("Contrast Overflow", &contrastOverflow);
+            ImGui::SliderFloat("Contrast", &contrastFactor, 0.0f, 10.0f);
+            ImGui::SliderFloat("Brightness", &brightnessFactor, 0.0f, 5.0f);
+            ImGui::Text("");
             ImGui::SliderFloat("Red Strength", &redStrength, 0, 1);
             ImGui::SliderFloat("Green Strength", &greenStrength, 0, 1);
             ImGui::SliderFloat("Blue Strength", &blueStrength, 0, 1);
+
+
+            ImGui::Text("");
+            ImGui::Separator();
+            ImGui::Text(" > Shift Settings");
+            ImGui::Separator();
+
             ImGui::SliderInt("Red Position Shift", &redPosShift, 0, MAX_POS_SHIFT);
-            ImGui::SliderInt("Green PositionS Shift", &greenPosShift, 0, MAX_POS_SHIFT);
+            ImGui::SliderInt("Green Position Shift", &greenPosShift, 0, MAX_POS_SHIFT);
             ImGui::SliderInt("Blue Position Shift", &bluePosShift, 0,MAX_POS_SHIFT);
+            ImGui::Text("");
+            ImGui::SliderInt("Red Time Shift", &redTimeShift, 0, MAX_TIME_SHIFT - 1);
+            ImGui::SliderInt("Green Time Shift", &greenTimeShift, 0, MAX_TIME_SHIFT - 1);
+            ImGui::SliderInt("Blue Time Shift", &blueTimeShift, 0,MAX_TIME_SHIFT - 1);
         }
 
         ImGui::End();
