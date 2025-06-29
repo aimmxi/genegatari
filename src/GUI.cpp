@@ -1,7 +1,4 @@
 #include "GUI.h"
-#include <cstdlib>
-
-SDL_Window* GUI::window = nullptr;
 
 GUI::GUI() {
     // Setup SDL
@@ -106,7 +103,6 @@ void GUI::mainWindow() {
 }
 
 /// Public functions
-
 /**
  * @brief Renders the background according to the state of currentEffect.
  */

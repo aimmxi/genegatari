@@ -10,6 +10,7 @@ include_directories(lib/imgui/backends)
 
 # Project source files
 set(PROJECT_SOURCES
+    src/Common.cpp
     src/EffectTest.cpp
     src/EffectPerlin.cpp
     src/GUI.cpp
