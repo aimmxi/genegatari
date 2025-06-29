@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./resources/icon.png" width="250" alt="Genegatari's icon" />
+  <img src="./resources/icon.png" width="300" alt="Genegatari's icon" />
 </div>
 <br>
 <h1 align="center">Genegatari</h1>
@@ -12,6 +12,7 @@ Genegatari is a tool that allows to render an OpenGL graphical application insid
 
 Generatari is mainly thought to be a playground to experiment with procedural generation and interesting graphical apps (The so called `Effects`), so it offers a few prebuilt ones to try out of the box: 
 * TEST: A simple rotating quadrilateral with controllable speed.
+* PERLIN: A 2D Perlin noise simulation with multiple controllable parameters for color and animation effects.
 
 ## Building
 
