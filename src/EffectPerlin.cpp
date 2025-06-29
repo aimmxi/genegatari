@@ -244,9 +244,13 @@ unsigned int EffectPerlin::preFilter(unsigned char p) {
             channels[RED] = channels[RED] * redStrength;
             channels[GREEN] = channels[GREEN] * greenStrength;
             channels[BLUE] = channels[BLUE] * blueStrength;
-            
             break;
     }
+
+    // The brightness is applied
+    channels[RED] = std::min((int) (channels[RED] * brightnessFactor), 255);
+    channels[GREEN] = std::min((int) (channels[GREEN] * brightnessFactor), 255);
+    channels[BLUE] = std::min((int) (channels[BLUE] * brightnessFactor), 255);
 
     return channelsToRGBA(channels);
 }
@@ -393,6 +397,7 @@ void EffectPerlin::effectSettings() {
         ImGui::SliderInt("Quantization", &quantizationFactor, 1, 128);
         ImGui::Checkbox("Contrast Overflow", &contrastOverflow);
         ImGui::SliderFloat("Contrast", &contrastFactor, 0.0f, 10.0f);
+        ImGui::SliderFloat("Brightness", &brightnessFactor, 0.0f, 5.0f);
 
         ImGui::Text("");
         ImGui::Separator();

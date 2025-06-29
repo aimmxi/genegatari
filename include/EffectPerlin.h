@@ -41,6 +41,7 @@ private:
     int quantizationFactor = 0;     // Applies quantization. The larger the value the more pronounced the discretization
     bool contrastOverflow = 0;      // Stops the colors from overflowing with high contrast ratios
     float contrastFactor = 1.0f;    // Contrast
+    float brightnessFactor = 1.0f;  // Brightness
 
     int colorMode = 1;              // Keeps record of the current color mode
     float redStrength = 1.0f;
