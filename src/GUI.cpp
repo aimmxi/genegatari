@@ -9,7 +9,10 @@ GUI::GUI() {
 
     // GLUT's nonsense for setup
     int argc = 1;
-    char *argv[1];
+    char *argv[2];
+
+    argv[0] = NULL;
+    argv[1] = NULL;
     
     // GLUT setup
     glutInit(&argc, argv);
