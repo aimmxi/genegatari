@@ -4,6 +4,7 @@
 #include <vector>
 
 // Effects
+#include "Effect.h"
 #include "EffectNone.h"
 #include "EffectTest.h"
 #include "EffectPerlin.h"
@@ -20,16 +21,14 @@
  */
 class GUI {
 private:
-    const std::vector<std::string> EFFECTS = { "NONE", "TEST", "PERLIN", "MATRIX", "ORBITS" };  // List of effects
-
     SDL_GLContext gl_context;
-    Effect* e = nullptr;
+    EffectType currentEffect;
+    Effect* effect = nullptr;
     bool displayGui = true;
     bool displayMainWindow = true;
     bool displayEffectSettings = false;
     bool hasEffectChanged = false;
     bool isFullscreen = false;
-    int currentEffect = 0;
 
     // FPS counter
     float frameTime = 0.0f;
