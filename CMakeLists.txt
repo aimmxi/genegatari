@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 4.0)
 project(genegatari)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_BUILD_TYPE Debug)
+
 
 include_directories(include)
 include_directories(lib/imgui)
@@ -11,6 +13,7 @@ include_directories(lib/imgui/backends)
 # NuCachis project source files
 set(PROJECT_SOURCES
     src/Common.cpp
+    src/Effect.cpp
     src/EffectNone.cpp
     src/EffectTest.cpp
     src/EffectPerlin.cpp

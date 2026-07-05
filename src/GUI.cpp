@@ -3,7 +3,7 @@
 GUI::GUI() {
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
-        std::cerr << "Error: " << SDL_GetError() << "\n";
+fprintf(        stderr,"Error: %s\n", SDL_GetError());
     }
     IMG_Init(IMG_INIT_PNG);
 
@@ -27,7 +27,7 @@ GUI::GUI() {
     // GLEW setuo
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) {
-        std::cerr << "GLEW initialization error" << std::endl;
+fprintf(        stderr, "GLEW initialization error\n");
         exit(EXIT_FAILURE);
     }
     
@@ -53,7 +53,7 @@ GUI::GUI() {
     glEnable(GL_TEXTURE_2D);
 
     // The none effect is created
-    e = new EffectNone();
+    effect = new EffectNone();
 }
 
 GUI::~GUI () {
@@ -67,7 +67,6 @@ GUI::~GUI () {
     IMG_Quit();
     SDL_Quit();
 }
-
 
 /**
  * @brief Renders the main window.
@@ -95,14 +94,14 @@ void GUI::mainWindow() {
         ImGui::Text("");
 
         // A drop down box gets inserted to select effects
-        if (ImGui::BeginCombo("Effect", EFFECTS[currentEffect].c_str())) {
+        if (ImGui::BeginCombo("Effect", getEffectTypeName(currentEffect))) {
             // For each effect
-            for (int i = 0; i < EFFECTS.size(); ++i) {
+            for (int e = 0; e < NUM_EFFECT_TYPES; ++e) {
                 // A new item in the drop down gets inserted
-                if (ImGui::Selectable(EFFECTS[i].c_str(), (currentEffect == i))) {
+                if (ImGui::Selectable(getEffectTypeName((EffectType) e), (currentEffect == (EffectType) e))) {
                     // If the widget is selected, the effect gets changed
-                    std::cout << "Switching to effect: " << EFFECTS[i].c_str() << std::endl;
-                    currentEffect = i;
+                    printf("Switching to effect: %s\n", getEffectTypeName((EffectType) e));
+                    currentEffect = (EffectType) e;
                     hasEffectChanged = true;
                 }
             }
@@ -111,7 +110,7 @@ void GUI::mainWindow() {
         
         // A button to open the effect's config is added
         if (ImGui::Button("Toggle effect's settings")) {
-            if (e != nullptr) {
+            if (effect != nullptr) {
                 displayEffectSettings = !displayEffectSettings;
             }
         }
@@ -127,30 +126,38 @@ void GUI::mainWindow() {
 void GUI::renderBackground(){
     // If a different effect has been picked, it gets instantiated.
     if (hasEffectChanged) {
+
+        printf("Effect changed to %d", currentEffect);
         // If there is an old instance of an effect, it gets deleted before creating a new one
-        if (e != nullptr) {
-            delete e;
+        if (effect != nullptr) {
+            delete effect;
         }
 
         // The new effect is instantiated
         switch (currentEffect) {
-            case 0:
-                e = new EffectNone();
+            case NONE:
+                effect = new EffectNone();
                 break;
-            case 1:
-                e = new EffectTest();
+            case TEST:
+                effect = new EffectTest();
+                break;
+            case PERLIN:
+                effect = new EffectPerlin();
                 break;
             case 2:
                 e = new EffectPerlin();
                 break;
+            default:
+                fprintf(stderr, "Undefined EffectType\n");
+                abort();
         }
 
         hasEffectChanged = false;
     }
     
     // And gets rendered
-    if (e != nullptr){
-        e->render();
+    if (effect != nullptr){
+        effect->render();
     }
 }
 
@@ -165,7 +172,7 @@ void GUI::renderMenus() {
         }
         // Effect settings menu
         if (displayEffectSettings) {
-            e->effectSettings();
+            effect->effectSettings();
         }
     }
 }
@@ -179,13 +186,13 @@ void GUI::checkKeyPresses() {
 
     // Listen for G and toggle GUI windows
     if (ImGui::IsKeyPressed(ImGuiKey_G)) {
-        std::cout << "Toggling GUI" << std::endl;
+        printf("Toggling GUI\n");
         displayGui = !displayGui;
     }
 
     // Listen for F1 and toggle fullscreen
     if (ImGui::IsKeyPressed(ImGuiKey_F)) {
-        std::cout << "Toggling fullscreen" << std::endl;
+        printf("Toggling fullscreen\n");
 
         if (isFullscreen) {
             // Switch to windowed mode

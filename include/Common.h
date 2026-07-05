@@ -9,13 +9,14 @@
 #include <SDL_opengl.h>
 #include <SDL_image.h>
 #include <omp.h>
-#include <iostream>
+#include <stdint.h>
 #include <string>
 
 #define RED 0
 #define GREEN 1
 #define BLUE 2
 #define ALPHA 3
+
 
 extern SDL_Window* window;
 

@@ -1,11 +1,11 @@
 #include "EffectTest.h" 
 
 EffectTest::EffectTest() {
-    std::cout << "EffectTest created!" << std::endl;
+    printf("EffectTest created!\n");
 }
 
 EffectTest::~EffectTest() {
-    std::cout << "EffectTest destroyed!" << std::endl;
+    printf("EffectTest destroyed!\n");
 }
 
 // Override
@@ -19,7 +19,7 @@ void EffectTest::render() {
 
     // Apply rotation
     rotationAngle = rotationAngle + rotationSpeed;
-    std::cout << "Angle: " << rotationAngle << std::endl;
+    printf("Angle=%f\n", rotationAngle);
 
     glRotatef(rotationAngle, 0.0f, 0.0f, 1.0f);
 
