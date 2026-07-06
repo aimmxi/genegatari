@@ -11,12 +11,13 @@
 #include <omp.h>
 #include <stdint.h>
 #include <string>
+#include <cstdlib>
+#include <ctime>
 
 #define RED 0
 #define GREEN 1
 #define BLUE 2
 #define ALPHA 3
-
 
 extern SDL_Window* window;
 

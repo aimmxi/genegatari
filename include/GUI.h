@@ -8,6 +8,7 @@
 #include "EffectNone.h"
 #include "EffectTest.h"
 #include "EffectPerlin.h"
+#include "EffectCellAutomaton.h"
 
 // Constants
 // Window
@@ -16,11 +17,11 @@
 #define INITIAL_HEIGHT 720
 
 /**
- * @class GUI
- * @brief Class that handles the main window creation and general settings menu
- */
+* @class GUI
+* @brief Class that handles the main window creation and general settings menu
+*/
 class GUI {
-private:
+    private:
     SDL_GLContext gl_context;
     EffectType currentEffect;
     Effect* effect = nullptr;
@@ -29,15 +30,15 @@ private:
     bool displayEffectSettings = false;
     bool hasEffectChanged = false;
     bool isFullscreen = false;
-
+    
     // FPS counter
     float frameTime = 0.0f;
     unsigned int lastTime = 0;
     unsigned int fps = 0;
-
+    
     void mainWindow();
-
-public:
+    
+    public:
     GUI();
     ~GUI();
     void renderBackground();

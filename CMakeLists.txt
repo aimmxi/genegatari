@@ -17,6 +17,7 @@ set(PROJECT_SOURCES
     src/EffectNone.cpp
     src/EffectTest.cpp
     src/EffectPerlin.cpp
+    src/EffectCellAutomaton.cpp
     src/GUI.cpp
     src/Main.cpp
 )

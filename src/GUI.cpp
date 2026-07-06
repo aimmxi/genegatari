@@ -3,7 +3,7 @@
 GUI::GUI() {
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
-fprintf(        stderr,"Error: %s\n", SDL_GetError());
+        fprintf(stderr,"Error: %s\n", SDL_GetError());
     }
     IMG_Init(IMG_INIT_PNG);
 
@@ -27,7 +27,7 @@ fprintf(        stderr,"Error: %s\n", SDL_GetError());
     // GLEW setuo
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) {
-fprintf(        stderr, "GLEW initialization error\n");
+        fprintf(stderr, "GLEW initialization error\n");
         exit(EXIT_FAILURE);
     }
     
@@ -144,8 +144,8 @@ void GUI::renderBackground(){
             case PERLIN:
                 effect = new EffectPerlin();
                 break;
-            case 2:
-                e = new EffectPerlin();
+            case CELLAUTOMATON:
+                effect = new EffectCellAutomaton();
                 break;
             default:
                 fprintf(stderr, "Undefined EffectType\n");
