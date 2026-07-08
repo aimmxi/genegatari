@@ -1,5 +1,8 @@
 #include "GUI.h"
 
+SDL_Window* window = nullptr;
+int32_t windowWidth, windowHeight;
+
 GUI::GUI() {
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
@@ -123,10 +126,12 @@ void GUI::mainWindow() {
 /**
  * @brief Renders the background according to the state of currentEffect.
  */
-void GUI::renderBackground(){
+void GUI::renderBackground() {
+    // Get the current resolution of the main window
+    SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+
     // If a different effect has been picked, it gets instantiated.
     if (hasEffectChanged) {
-
         printf("Effect changed to %d", currentEffect);
         // If there is an old instance of an effect, it gets deleted before creating a new one
         if (effect != nullptr) {

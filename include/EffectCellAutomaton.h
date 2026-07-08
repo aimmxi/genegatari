@@ -24,7 +24,7 @@ private:
 
     // Arrangement of rules and parameters of the simulation
     struct Rules {
-        uint16_t rows, cols;
+        int32_t rows, cols;
         bool    birthCriteria[NUM_ADJ_CELLS];
         bool    survivalCriteria[NUM_ADJ_CELLS];
     };
@@ -34,8 +34,9 @@ private:
     Cell* buffers[NUM_BUFFERS] = {nullptr, nullptr};
     uint8_t currentBuffer;
 
-    // Rules of the simulation
+    // Rules and settings of the simulation
     Rules ruleset;
+    bool randomizeCells = true;
 
     // Stats
     uint64_t generation;
@@ -44,7 +45,7 @@ private:
     // Rendering variables
     uint8_t* colorMap = nullptr;                // Map representing the colors of each iteration
     GLuint texture = 0;                         // The texture that will get rendered
-
+    bool boardChanged = false;                  // If a change has been made to the settings of the board and regeneration has to be made.
 
     // Functions
     void rescaleBoard();

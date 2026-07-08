@@ -1,5 +1,4 @@
 #include "EffectCellAutomaton.h" 
-#include "Effect.h"
 #include <cstdint>
 
 EffectCellAutomaton::EffectCellAutomaton() {
@@ -17,23 +16,11 @@ EffectCellAutomaton::EffectCellAutomaton() {
     ruleset.survivalCriteria[1] = true;         // Cells with 2-3 neighbours are kept alive
     ruleset.survivalCriteria[2] = true;
 
-    // Init the board
-    rescaleBoard();
-
     // Init the random number generator
     srand(time(NULL));
 
-    // Fill the board with random values
-    for (int i = 0; i < ruleset.rows; ++i) {
-        for (int j = 0; j < ruleset.cols; ++j) {
-            buffers[0][i * ruleset.cols + j].isAlive = rand() % 2;
-            buffers[0][i * ruleset.cols + j].age = 0;
-
-            // Init the colormap as well
-            if (buffers[0][i * j].isAlive)  colorMap[i * ruleset.cols + j] = 128;
-            else                            colorMap[i * ruleset.cols + j] = 0;
-        }
-    }
+    // Init the board
+    rescaleBoard();
 
     // After generating the colormap, generate the texture
     rescaleTexture();
@@ -59,6 +46,21 @@ void EffectCellAutomaton::rescaleBoard() {
     // Also, resize the color map
     if (colorMap != nullptr) free(colorMap);
     colorMap = (uint8_t*) malloc(ruleset.cols * ruleset.rows);
+
+    // Init the board
+    for (int i = 0; i < ruleset.rows; ++i) {
+        for (int j = 0; j < ruleset.cols; ++j) {
+            // If randomization is enabled, set the board with random values
+            if (randomizeCells) buffers[0][i * ruleset.cols + j].isAlive = rand() % 2;
+            else                buffers[0][i * ruleset.cols + j].isAlive = false;
+
+            buffers[0][i * ruleset.cols + j].age = 0;
+
+            // Init the colormap as well
+            if (buffers[0][i * j].isAlive)  colorMap[i * ruleset.cols + j] = 128;
+            else                            colorMap[i * ruleset.cols + j] = 0;
+        }
+    }
 }
 
 /**
@@ -83,17 +85,41 @@ void EffectCellAutomaton::rescaleTexture() {
 
 // Override
 void EffectCellAutomaton::render() {
+    // If the board changed, regenerate it 
+    if (boardChanged) {
+        rescaleBoard();
+        rescaleTexture();
+        boardChanged = false;
+    }
+
+    // Clear the previous buffer
     glClear(GL_COLOR_BUFFER_BIT);
 
+    // Create and draw the texture
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-    glBegin(GL_QUADS);
+    // Calculate the aspect ratio and map the texture accordingly
+    float quadWidth = 1.0f;
+    float quadHeight = 1.0f;
+    float windowRatio = (float) windowWidth / (float) windowHeight;
+    float textureRatio = (float) ruleset.cols / ruleset.rows;
 
-    glTexCoord2f(0, 0); glVertex2f(-1, -1);
-    glTexCoord2f(1, 0); glVertex2f( 1, -1);
-    glTexCoord2f(1, 1); glVertex2f( 1,  1);
-    glTexCoord2f(0, 1); glVertex2f(-1,  1);
+    glBegin(GL_QUADS);
+    
+
+    if (textureRatio > windowRatio) {
+        // Texture is relatively wider than the window.
+        quadHeight = windowRatio / textureRatio;
+    } else {
+        // Texture is relatively taller than the window.
+        quadWidth = textureRatio / windowRatio;
+    }
+
+    glTexCoord2f(0,0); glVertex2f(-quadWidth, -quadHeight);
+    glTexCoord2f(1,0); glVertex2f( quadWidth, -quadHeight);
+    glTexCoord2f(1,1); glVertex2f( quadWidth,  quadHeight);
+    glTexCoord2f(0,1); glVertex2f(-quadWidth,  quadHeight);
 
     glEnd();
 }
@@ -104,10 +130,17 @@ void EffectCellAutomaton::effectSettings() {
         ImGui::Text("Life-Like Cellular Automaton Effect");
         
         ImGui::Separator();
-        // ImGui::Text(" > Basic Settings");
-        // ImGui::Separator();
-        // ImGui::SliderInt("Texture Width", &textureWidth, 200, 2000);
-        // ImGui::SliderInt("Texture Height", &textureHeight, 200, 2000);
+        ImGui::Text(" > Basic Settings");
+        ImGui::Separator();
+        boardChanged = boardChanged || ImGui::InputInt("Board Width", &ruleset.cols);
+        boardChanged = boardChanged || ImGui::InputInt("Board Height", &ruleset.rows);
+        ImGui::Checkbox("Randomize on board change", &randomizeCells);
+        if (ImGui::Button("Fit to resolution")) {
+            ruleset.cols = windowWidth;
+            ruleset.rows = windowHeight;
+            boardChanged = true;
+        }
+
         // ImGui::SliderFloat("Distance", &distance, 1.0f, 100.0f);
         // ImGui::SliderFloat("Animation Speed", &animationSpeed, 0.0f, 0.5f);
         // ImGui::SliderInt("Pixel Factor", &pixelFactor, 1, 32);
