@@ -21,17 +21,17 @@ EffectCellAutomaton::EffectCellAutomaton() {
     rescaleBoard();
 
     // Init the random number generator
-    srand((unsigned int) time(nullptr));
+    srand(time(NULL));
 
     // Fill the board with random values
     for (int i = 0; i < ruleset.rows; ++i) {
         for (int j = 0; j < ruleset.cols; ++j) {
-            buffers[0][i * j].isAlive = (bool) rand() % 2;
-            buffers[0][i * j].age = 0;
+            buffers[0][i * ruleset.cols + j].isAlive = rand() % 2;
+            buffers[0][i * ruleset.cols + j].age = 0;
 
             // Init the colormap as well
-            if (buffers[0][i * j].isAlive)  colorMap[i * j] = 128;
-            else                            colorMap[i * j] = 0;
+            if (buffers[0][i * j].isAlive)  colorMap[i * ruleset.cols + j] = 128;
+            else                            colorMap[i * ruleset.cols + j] = 0;
         }
     }
 
@@ -78,7 +78,7 @@ void EffectCellAutomaton::rescaleTexture() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     // Map the colormap to the texture that will be rendered
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, ruleset.cols, ruleset.rows, 0, GL_RGB, GL_UNSIGNED_BYTE, colorMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, ruleset.cols, ruleset.rows, 0, GL_RED, GL_UNSIGNED_BYTE, colorMap);
 }
 
 // Override
