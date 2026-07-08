@@ -20,6 +20,7 @@
 #define ALPHA 3
 
 extern SDL_Window* window;
+extern int32_t windowWidth, windowHeight;
 
 unsigned int channelsToRGBA(unsigned char* c);
 void RGBAToChannels(unsigned int p, unsigned char* c);
