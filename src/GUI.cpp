@@ -23,13 +23,6 @@ fprintf(        stderr,"Error: %s\n", SDL_GetError());
     gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
     SDL_GL_SetSwapInterval(1); // Enable vsync
-
-    // GLEW setuo
-    glewExperimental = GL_TRUE;
-    if (glewInit() != GLEW_OK) {
-fprintf(        stderr, "GLEW initialization error\n");
-        exit(EXIT_FAILURE);
-    }
     
     // Set SDL's icon
     // TODO Embed the icon in the application itself instead of using routes.
