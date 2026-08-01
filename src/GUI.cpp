@@ -26,13 +26,6 @@ GUI::GUI() {
     gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
     SDL_GL_SetSwapInterval(1); // Enable vsync
-
-    // GLEW setuo
-    glewExperimental = GL_TRUE;
-    if (glewInit() != GLEW_OK) {
-        fprintf(stderr, "GLEW initialization error\n");
-        exit(EXIT_FAILURE);
-    }
     
     // Set SDL's icon
     // TODO Embed the icon in the application itself instead of using routes.
@@ -132,11 +125,8 @@ void GUI::renderBackground() {
 
     // If a different effect has been picked, it gets instantiated.
     if (hasEffectChanged) {
-        printf("Effect changed to %d", currentEffect);
         // If there is an old instance of an effect, it gets deleted before creating a new one
-        if (effect != nullptr) {
-            delete effect;
-        }
+        if (effect != nullptr) delete effect;
 
         // The new effect is instantiated
         switch (currentEffect) {

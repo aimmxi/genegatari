@@ -34,9 +34,6 @@ void EffectTest::render() {
 
     // Pop the matrix to return to the previous state
     glPopMatrix();
-
-    // Swap buffers
-    SDL_GL_SwapWindow(SDL_GetWindowFromID(1));
 }
 
 // Override

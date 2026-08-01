@@ -388,9 +388,6 @@ void EffectPerlin::render() {
     glTexCoord2f(0.0f, 1.0f); glVertex2f(-1.0f,  1.0f);
     glEnd();
 
-    // Swap buffers
-    SDL_GL_SwapWindow(SDL_GetWindowFromID(1));
-
     // The texture gets deleted 
     glDeleteTextures(1, &texture);
 }
