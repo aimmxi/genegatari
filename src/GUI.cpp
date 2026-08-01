@@ -116,15 +116,11 @@ void GUI::mainWindow() {
 /**
  * @brief Renders the background according to the state of currentEffect.
  */
-void GUI::renderBackground(){
+void GUI::renderBackground() {
     // If a different effect has been picked, it gets instantiated.
     if (hasEffectChanged) {
-
-        printf("Effect changed to %d", currentEffect);
         // If there is an old instance of an effect, it gets deleted before creating a new one
-        if (effect != nullptr) {
-            delete effect;
-        }
+        if (effect != nullptr) delete effect;
 
         // The new effect is instantiated
         switch (currentEffect) {
@@ -136,9 +132,6 @@ void GUI::renderBackground(){
                 break;
             case PERLIN:
                 effect = new EffectPerlin();
-                break;
-            case 2:
-                e = new EffectPerlin();
                 break;
             default:
                 fprintf(stderr, "Undefined EffectType\n");
