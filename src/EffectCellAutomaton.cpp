@@ -1,25 +1,19 @@
 #include "EffectCellAutomaton.h" 
-#include "imgui.h"
-#include <cstdint>
+
+using namespace std::chrono;
 
 EffectCellAutomaton::EffectCellAutomaton() {
     // Set the initial rules
-    ruleset.rows = INITIAL_ROWS;
-    ruleset.cols = INITIAL_COLS;
-
-    for (int i = 0; i < NUM_ADJ_CELLS; ++i ) {
-        ruleset.birthCriteria[i] = false; 
-        ruleset.survivalCriteria[i] = false; 
-    }
+    settings.rows = INITIAL_ROWS;
+    settings.cols = INITIAL_COLS;
 
     // Start off with Conway's rules
-    ruleset.birthCriteria[3] = true;            // Dead cells with 3 neighbours are brought to life
-    ruleset.survivalCriteria[2] = true;         // Cells with 2-3 neighbours are kept alive
-    ruleset.survivalCriteria[3] = true;
+    loadPreset(PRESET_CONWAY);
 
     // Set the inital state
     generation = 0;
     aliveCells = 0;
+    currentBuffer = 0;
 
     // Init the random number generator
     srand(time(NULL));
@@ -38,6 +32,29 @@ EffectCellAutomaton::~EffectCellAutomaton() {
 }
 
 /**
+ * Returns the name of the selected preset
+ * @return The name of the preset in std::string format.
+ */
+std::string EffectCellAutomaton::getPresetName(Preset p) {
+    switch (p) {
+        case PRESET_CONWAY:         return "Conway";
+        case PRESET_HIGHLIFE:       return "Highlife";
+        default:                    return "Error in preset";
+    }
+}
+
+/**
+ * Load the selected preset. 
+ * @param p The preset to load.
+ */
+void EffectCellAutomaton::loadPreset(Preset p) {
+    for (int i = 0; i <= NUM_ADJ_CELLS; ++i) {
+        criteria.birth[i] = presets[p].birth[i];
+        criteria.survival[i] = presets[p].survival[i];
+    }
+}
+
+/**
  * For a given cell, checks if it will be alive on the next generation. Represents the stencil operation of the simulation.
  * 
  * @param row The row of the cell
@@ -48,26 +65,26 @@ bool EffectCellAutomaton::checkEvolution(int32_t row, int32_t col) {
     uint8_t neighbours = 0;
 
     // Iterate over every row
-    for (int i =  (row - 1); i <= (row + 1); ++i) {
+    for (int i = (row - 1); i <= (row + 1); ++i) {
         // If the row is out of bounds, jump to the next row.
-        if (i < 0 || i >= ruleset.rows) continue;
+        if (i < 0 || i >= settings.rows) continue;
 
         // Iterate over every cell (row and column)
         for (int j = (col - 1); j <= (col + 1); ++j) {
             // If the cell to check is out of bounds or it is the same cell we are trying to check, skip it
-            if (j < 0 || j >= ruleset.cols || (i == row && j == col)) continue;
+            if (j < 0 || j >= settings.cols || (i == row && j == col)) continue;
 
             // Check if the neighbouring cells are alive
-            if (buffers[currentBuffer][i * ruleset.cols + j].isAlive) neighbours++;
+            if (buffers[currentBuffer][i * settings.cols + j].isAlive) neighbours++;
         }
     }
 
-    if (buffers[currentBuffer][row * ruleset.cols + col].isAlive) {
+    if (buffers[currentBuffer][row * settings.cols + col].isAlive) {
         // If the cell is alive, check survival against the survival criteria
-        return ruleset.survivalCriteria[neighbours];
+        return criteria.survival[neighbours];
     } else {
         // If dead, check if it will be born based on the birth criteria
-        return ruleset.birthCriteria[neighbours];
+        return criteria.birth[neighbours];
     }
 }
 
@@ -84,10 +101,10 @@ void EffectCellAutomaton::stepSimulation() {
     uint8_t nextBuffer = (currentBuffer + 1) % NUM_BUFFERS;
 
     // Check for every cell, check how it progresses onto the next generation
-    for (int i = 0; i < ruleset.rows; ++i) {
-        for (int j = 0; j < ruleset.cols; ++j) {
-            origCell = &buffers[currentBuffer][i * ruleset.cols + j];
-            destCell = &buffers[nextBuffer][i * ruleset.cols + j];
+    for (int i = 0; i < settings.rows; ++i) {
+        for (int j = 0; j < settings.cols; ++j) {
+            origCell = &buffers[currentBuffer][i * settings.cols + j];
+            destCell = &buffers[nextBuffer][i * settings.cols + j];
 
             // Calculate the state of the cell for the next generation
             willBeAlive = checkEvolution(i, j);
@@ -101,10 +118,10 @@ void EffectCellAutomaton::stepSimulation() {
 
             // Regenerate the colormap
             if (destCell->isAlive) {
-                colorMap[i * ruleset.cols + j] = 128;
+                colorMap[i * settings.cols + j] = 128;
                 newAliveCells++;
             } else {
-                colorMap[i * ruleset.cols + j] = 0;
+                colorMap[i * settings.cols + j] = 0;
             }
         }
     }
@@ -112,12 +129,15 @@ void EffectCellAutomaton::stepSimulation() {
     // Update the texture
     glBindTexture(GL_TEXTURE_2D, texture);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // if using 1-byte-per-pixel data
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, ruleset.cols, ruleset.rows, GL_RED, GL_UNSIGNED_BYTE, colorMap);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, settings.cols, settings.rows, GL_RED, GL_UNSIGNED_BYTE, colorMap);
 
     // Advance the generation and swap the buffer
     generation++;
     aliveCells = newAliveCells;
     currentBuffer = nextBuffer;
+
+    // Update the finish time of the step
+    lastStepTimestamp = steady_clock::now();
 }
 
 /**
@@ -130,26 +150,26 @@ void EffectCellAutomaton::rescaleBoard() {
     if (colorMap != nullptr) free(colorMap);
 
     // Allocate memory for the two main buffers and colormap
-    buffers[0] = (Cell*) malloc(ruleset.cols * ruleset.rows * sizeof(Cell));
-    buffers[1] = (Cell*) malloc(ruleset.cols * ruleset.rows * sizeof(Cell));
-    colorMap = (uint8_t*) malloc(ruleset.cols * ruleset.rows * sizeof(uint8_t));
+    buffers[0] = (Cell*) malloc(settings.cols * settings.rows * sizeof(Cell));
+    buffers[1] = (Cell*) malloc(settings.cols * settings.rows * sizeof(Cell));
+    colorMap = (uint8_t*) malloc(settings.cols * settings.rows * sizeof(uint8_t));
     
     // Init the board
-    for (int i = 0; i < ruleset.rows; ++i) {
-        for (int j = 0; j < ruleset.cols; ++j) {
+    for (int i = 0; i < settings.rows; ++i) {
+        for (int j = 0; j < settings.cols; ++j) {
             // If randomization is enabled, set the board with random values
-            if (randomizeCells) buffers[0][i * ruleset.cols + j].isAlive = rand() % 2;
-            else                buffers[0][i * ruleset.cols + j].isAlive = false;
+            if (settings.randomizeCells) buffers[0][i * settings.cols + j].isAlive = rand() % 2;
+            else                buffers[0][i * settings.cols + j].isAlive = false;
 
             // Count the cells
-            if (buffers[0][i * ruleset.cols + j].isAlive) aliveCells++;
+            if (buffers[0][i * settings.cols + j].isAlive) aliveCells++;
 
             // Reset the age of each cell
-            buffers[0][i * ruleset.cols + j].age = 0;
+            buffers[0][i * settings.cols + j].age = 0;
 
             // Init the colormap as well
-            if (buffers[0][i * ruleset.cols + j].isAlive)   colorMap[i * ruleset.cols + j] = 128;
-            else                                            colorMap[i * ruleset.cols + j] = 0;
+            if (buffers[0][i * settings.cols + j].isAlive)   colorMap[i * settings.cols + j] = 128;
+            else                                            colorMap[i * settings.cols + j] = 0;
         }
     }
 }
@@ -172,7 +192,7 @@ void EffectCellAutomaton::rescaleTexture() {
 
     // Map the colormap to the texture that will be rendered
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, ruleset.cols, ruleset.rows, 0, GL_RED, GL_UNSIGNED_BYTE, colorMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, settings.cols, settings.rows, 0, GL_RED, GL_UNSIGNED_BYTE, colorMap);
 }
 
 // Override
@@ -182,10 +202,14 @@ void EffectCellAutomaton::render() {
         rescaleBoard();
         rescaleTexture();
         boardChanged = false;
+        generation = 0;
     }
     
-    // If run is set to true, step the simulation
-    if (runSimulation) stepSimulation();
+    // If run is set to true and the pause has elapsed, step the simulation
+    if (runSimulation && 
+        steady_clock::now() - lastStepTimestamp >= milliseconds(settings.pauseBetweenSteps)) {
+        stepSimulation();
+    }
 
     // Clear the previous buffer
     glClear(GL_COLOR_BUFFER_BIT);
@@ -198,7 +222,7 @@ void EffectCellAutomaton::render() {
     float quadWidth = 1.0f;
     float quadHeight = 1.0f;
     float windowRatio = (float) windowWidth / (float) windowHeight;
-    float textureRatio = (float) ruleset.cols / ruleset.rows;
+    float textureRatio = (float) settings.cols / settings.rows;
 
     glBegin(GL_QUADS);
 
@@ -222,33 +246,75 @@ void EffectCellAutomaton::render() {
 void EffectCellAutomaton::effectSettings() {
     if (ImGui::Begin("Life-Like Cellular Automaton Effect", nullptr, ImGuiWindowFlags_NoCollapse)) {
         ImGui::Text("Life-Like Cellular Automaton Effect");
-        
+
+        ImGui::Dummy(ImVec2(0.0f, 10.0f));
         ImGui::Separator();
-        ImGui::Text(" > Basic Settings");
-        ImGui::Separator();
-        boardChanged = boardChanged || ImGui::InputInt("Board Width", &ruleset.cols);
-        boardChanged = boardChanged || ImGui::InputInt("Board Height", &ruleset.rows);
-        ImGui::Checkbox("Randomize on board change", &randomizeCells);
+        ImGui::Text(" > Board Settings");
+        ImGui::Dummy(ImVec2(0.0f, 10.0f));
+
+        boardChanged = boardChanged || ImGui::InputInt("Board Width", &settings.cols);
+        boardChanged = boardChanged || ImGui::InputInt("Board Height", &settings.rows);
+
         if (ImGui::Button("Fit to resolution")) {
-            ruleset.cols = windowWidth;
-            ruleset.rows = windowHeight;
+            settings.cols = windowWidth;
+            settings.rows = windowHeight;
             boardChanged = true;
         }
+        ImGui::Checkbox("Randomize life on board change", &settings.randomizeCells);
 
+        ImGui::Dummy(ImVec2(0.0f, 10.0f));
         ImGui::Separator();
-        ImGui::Text(" > Simulation");
+        ImGui::Text(" > Simulation rules");
+        ImGui::Dummy(ImVec2(0.0f, 10.0f));
+
+        // Preset loading
+        if (ImGui::BeginCombo("Preset", getPresetName((EffectCellAutomaton::Preset) settings.selectedPreset).c_str())) {
+            for (int i = 0; i < NUM_PRESETS; ++i) {
+                bool isSelected = (settings.selectedPreset == i);
+
+                if (ImGui::Selectable(getPresetName((EffectCellAutomaton::Preset) i).c_str() , isSelected)) {
+                    settings.selectedPreset = i;
+                    loadPreset((EffectCellAutomaton::Preset) i);
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        ImGui::BeginGroup();
+            ImGui::Text("Birth (B)");
+            for (int i = 0; i <= NUM_ADJ_CELLS; ++i) {
+                ImGui::PushID(i);
+                ImGui::Checkbox(std::to_string(i).c_str(), &criteria.birth[i]);
+                ImGui::PopID();
+            }
+        ImGui::EndGroup();
+
+        ImGui::SameLine(0, 40);
+
+        ImGui::BeginGroup();
+            ImGui::Text("Survival (S)");
+            for (int i = 0; i <= NUM_ADJ_CELLS; ++i) {
+                ImGui::PushID(i + 10);
+                ImGui::Checkbox(std::to_string(i).c_str(), &criteria.survival[i]);
+                ImGui::PopID();
+            }
+        ImGui::EndGroup();
+
+        ImGui::Dummy(ImVec2(0.0f, 10.0f));
         ImGui::Separator();
+        ImGui::Text(" > Simulation Control");
+        ImGui::Dummy(ImVec2(0.0f, 10.0f));
+
+        ImGui::SliderInt("Pause between steps (ms)", &settings.pauseBetweenSteps, 0, 1000);
+
         ImGui::Text("Alive Cells: %ld", aliveCells);
         ImGui::Text("Generation: %ld", generation);
 
-        if (ImGui::Button("Step simulation")) stepSimulation();
-        if (ImGui::Button("Run simulation")) runSimulation = !runSimulation;
-        
-
-        // ImGui::SliderFloat("Distance", &distance, 1.0f, 100.0f);
-        // ImGui::SliderFloat("Animation Speed", &animationSpeed, 0.0f, 0.5f);
-        // ImGui::SliderInt("Pixel Factor", &pixelFactor, 1, 32);
-        // ImGui::SliderInt("Quantization", &quantizationFactor, 1, 128);
+        if (ImGui::Button("Single Step")) stepSimulation();
+        ImGui::SameLine();
+        if (ImGui::Button("Run")) runSimulation = !runSimulation;
+        ImGui::SameLine();
+        if (ImGui::Button("Reset")) boardChanged = true;
 
         ImGui::End();
     }

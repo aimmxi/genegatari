@@ -12,6 +12,7 @@
 #include <string>
 #include <cstdlib>
 #include <ctime>
+#include <chrono>
 
 #define RED 0
 #define GREEN 1
