@@ -13,20 +13,46 @@ private:
     // Constants
     #define NUM_BUFFERS     2
     #define NUM_ADJ_CELLS   8
-    #define INITIAL_COLS    25
+    #define INITIAL_COLS    50
     #define INITIAL_ROWS    INITIAL_COLS
+
+    // Preset types
+    enum Preset {
+        PRESET_CONWAY,
+        PRESET_HIGHLIFE,
+        NUM_PRESETS,
+    };
 
     // The representation of a cell 
     struct Cell {
-        bool        isAlive;
         uint32_t    age;
+        bool        isAlive;
     };
 
-    // Arrangement of rules and parameters of the simulation
-    struct Rules {
+    // Criteria of survival/birth
+    struct Criteria {
+        bool    birth[NUM_ADJ_CELLS + 1];           // + 1 To indicate having no neighbours
+        bool    survival[NUM_ADJ_CELLS + 1];
+    };
+
+    // Misc simulation settings
+    struct Settings {
         int32_t rows, cols;
-        bool    birthCriteria[NUM_ADJ_CELLS + 1];           // + 1 To indicate having no neighbours
-        bool    survivalCriteria[NUM_ADJ_CELLS + 1];
+        int32_t pauseBetweenSteps = 0;                                      // Determines the pause between steps of the simulation to make it appear slower
+        uint16_t selectedPreset = 0;                                        // The selected preset
+        bool randomizeCells = true;                                         // If cells should be randomized upon regenerating the board
+    };
+
+    // Presets
+    Criteria presets[NUM_PRESETS] = {
+        {   // Conway
+            {   false,  false,  true,   false,  false,  false,  false,  false,  false},
+            {   false,  false,  true,   true,   false,  false,  false,  false,  false},
+        },
+        {   // HighLife
+            {   false,  false,  false,  true,   false,  false,  true,   false,  false},
+            {   false,  false,  true,   true,   false,  false,  false,  false,  false},
+        }
     };
 
     // The matrix of cells
@@ -34,21 +60,24 @@ private:
     Cell* buffers[NUM_BUFFERS] = {nullptr, nullptr};
     uint8_t currentBuffer;
 
-    // Rules and settings of the simulation
-    Rules ruleset;
-    bool randomizeCells = true;
+    // Criteria of survival and settings of the simulator
+    Criteria criteria;
+    Settings settings;
 
     // Stats
     uint64_t generation;
     uint64_t aliveCells;
 
     // Rendering variables
-    uint8_t* colorMap = nullptr;                // Map representing the colors of each iteration
-    GLuint texture = 0;                         // The texture that will get rendered
-    bool boardChanged = false;                  // If a change has been made to the settings of the board and regeneration has to be made.
-    bool runSimulation = false;                 // Runs the simulation indefinitely
+    GLuint texture = 0;                                                 // The texture that will get rendered
+    uint8_t* colorMap = nullptr;                                        // Map representing the colors of each iteration
+    std::chrono::steady_clock::time_point lastStepTimestamp;            // When the last simulation step happened
+    bool boardChanged = false;                                          // If a change has been made to the settings of the board and regeneration has to be made.
+    bool runSimulation = false;                                         // Runs the simulation indefinitely
 
     // Functions
+    std::string getPresetName(Preset p);
+    void loadPreset(Preset p);
     void rescaleBoard();
     void rescaleTexture();
     bool checkEvolution(int32_t row, int32_t col);
