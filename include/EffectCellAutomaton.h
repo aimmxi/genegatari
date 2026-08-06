@@ -74,6 +74,10 @@ private:
     std::chrono::steady_clock::time_point lastStepTimestamp;            // When the last simulation step happened
     bool boardChanged = false;                                          // If a change has been made to the settings of the board and regeneration has to be made.
     bool runSimulation = false;                                         // Runs the simulation indefinitely
+    float zoom = 1.0f;                                                  // Canvas zoom
+    float panSpeed = 1.0f;                                              // The speed at which panning moves the board
+    float panOffsetX = 0.0f;                                            // How offset is the texture in X and Y
+    float panOffsetY = 0.0f;
 
     // Functions
     std::string getPresetName(Preset p);
