@@ -1,5 +1,6 @@
 #include "EffectCellAutomaton.h" 
 
+using namespace std;
 using namespace std::chrono;
 
 EffectCellAutomaton::EffectCellAutomaton() {
@@ -35,7 +36,7 @@ EffectCellAutomaton::~EffectCellAutomaton() {
  * Returns the name of the selected preset
  * @return The name of the preset in std::string format.
  */
-std::string EffectCellAutomaton::getPresetName(Preset p) {
+string EffectCellAutomaton::getPresetName(Preset p) {
     switch (p) {
         case PRESET_CONWAY:         return "Conway";
         case PRESET_HIGHLIFE:       return "Highlife";
@@ -168,7 +169,7 @@ void EffectCellAutomaton::rescaleBoard() {
             buffers[0][i * settings.cols + j].age = 0;
 
             // Init the colormap as well
-            if (buffers[0][i * settings.cols + j].isAlive)   colorMap[i * settings.cols + j] = 128;
+            if (buffers[0][i * settings.cols + j].isAlive)  colorMap[i * settings.cols + j] = 128;
             else                                            colorMap[i * settings.cols + j] = 0;
         }
     }
@@ -190,9 +191,17 @@ void EffectCellAutomaton::rescaleTexture() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
+    // Prevents textures from looping endlessly, which does not make sense when panning
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    
+    // Use the same border color as the default ImGUI background
+    GLfloat borderColor[] = {0.102f, 0.102f, 0.102f, 1.0f};
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
     // Map the colormap to the texture that will be rendered
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, settings.cols, settings.rows, 0, GL_RED, GL_UNSIGNED_BYTE, colorMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, settings.cols, settings.rows, 0, GL_RED, GL_UNSIGNED_BYTE, colorMap);
 }
 
 // Override
@@ -234,10 +243,27 @@ void EffectCellAutomaton::render() {
         quadWidth = textureRatio / windowRatio;
     }
 
-    glTexCoord2f(0,1); glVertex2f(-quadWidth, -quadHeight);
-    glTexCoord2f(1,1); glVertex2f( quadWidth, -quadHeight);
-    glTexCoord2f(1,0); glVertex2f( quadWidth,  quadHeight);
-    glTexCoord2f(0,0); glVertex2f(-quadWidth,  quadHeight);
+    // Draw the texture applying zoom and panning
+    glTexCoord2f(0, 1); glVertex2f((-quadWidth + quadWidth * panOffsetX) * zoom, (-quadHeight + quadHeight * panOffsetY) * zoom);       // Top left
+    glTexCoord2f(1, 1); glVertex2f(( quadWidth + quadWidth * panOffsetX) * zoom, (-quadHeight + quadHeight * panOffsetY) * zoom);       // Top right
+    glTexCoord2f(1, 0); glVertex2f(( quadWidth + quadWidth * panOffsetX) * zoom, ( quadHeight + quadHeight * panOffsetY) * zoom);       // Bottom right
+    glTexCoord2f(0, 0); glVertex2f((-quadWidth + quadWidth * panOffsetX) * zoom, ( quadHeight + quadHeight * panOffsetY) * zoom);       // Bottom left
+
+    // Fetch io
+    ImGuiIO& io = ImGui::GetIO();
+
+    // If there has been a click on the canvas (not on an ImGUI window)
+    if ((ImGui::IsMouseDown(ImGuiMouseButton_Left) || ImGui::IsMouseDown(ImGuiMouseButton_Right)) && (!io.WantCaptureMouse)) {
+        // Calculate the cell that has been clicked
+    }
+
+    // If middle mouse is clicked and there has been some movement, pan the mouse
+    if (ImGui::IsMouseDown(ImGuiMouseButton_Middle) && (io.MouseDelta.x != 0.0f || io.MouseDelta.y != 0.0f)) {
+        // Delta gives you the difference in pixels, it has to be normalized to a percent first
+        // Afterwards, it is linked with the aspect ratio of the texture, adapted to zoom and speed is added (if changed)
+        panOffsetX += (io.MouseDelta.x / windowWidth) * (1 / quadWidth) / zoom * panSpeed;
+        panOffsetY += (-io.MouseDelta.y / windowHeight) * (1 / quadHeight) / zoom * panSpeed;
+    }
 
     glEnd();
 }
@@ -246,6 +272,17 @@ void EffectCellAutomaton::render() {
 void EffectCellAutomaton::effectSettings() {
     if (ImGui::Begin("Life-Like Cellular Automaton Effect", nullptr, ImGuiWindowFlags_NoCollapse)) {
         ImGui::Text("Life-Like Cellular Automaton Effect");
+        ImGui::Dummy(ImVec2(0.0f, 10.0f));
+        ImGui::Separator();
+        ImGui::Text(" > Controls");
+        ImGui::Text("'Middle Mouse' to pan");
+        ImGui::Text("'Right Mouse' to set cell to dead");
+        ImGui::Text("'Left Mouse' to set cell to alive");
+
+        ImGui::SliderFloat("Zoom", &zoom, 1.0f, 16.0f);
+        ImGui::SliderFloat("Pan Speed", &panSpeed, 1.0f, 8.0f);
+        ImGui::SliderFloat("Pan X", &panOffsetX, -1.0f, 1.0f);
+        ImGui::SliderFloat("Pan Y", &panOffsetY, -1.0f, 1.0f);
 
         ImGui::Dummy(ImVec2(0.0f, 10.0f));
         ImGui::Separator();
@@ -284,7 +321,7 @@ void EffectCellAutomaton::effectSettings() {
             ImGui::Text("Birth (B)");
             for (int i = 0; i <= NUM_ADJ_CELLS; ++i) {
                 ImGui::PushID(i);
-                ImGui::Checkbox(std::to_string(i).c_str(), &criteria.birth[i]);
+                ImGui::Checkbox(to_string(i).c_str(), &criteria.birth[i]);
                 ImGui::PopID();
             }
         ImGui::EndGroup();
@@ -295,7 +332,7 @@ void EffectCellAutomaton::effectSettings() {
             ImGui::Text("Survival (S)");
             for (int i = 0; i <= NUM_ADJ_CELLS; ++i) {
                 ImGui::PushID(i + 10);
-                ImGui::Checkbox(std::to_string(i).c_str(), &criteria.survival[i]);
+                ImGui::Checkbox(to_string(i).c_str(), &criteria.survival[i]);
                 ImGui::PopID();
             }
         ImGui::EndGroup();
