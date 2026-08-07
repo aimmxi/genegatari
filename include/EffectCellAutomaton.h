@@ -16,6 +16,10 @@ private:
     #define INITIAL_COLS    50
     #define INITIAL_ROWS    INITIAL_COLS
 
+    // Formulas
+    #define APPLY_PAN_ZOOM_X(original) ((original + quadWidth * panOffsetX) * zoom)
+    #define APPLY_PAN_ZOOM_Y(original) ((original + quadHeight * panOffsetY) * zoom)
+
     // Preset types
     enum Preset {
         PRESET_CONWAY,
