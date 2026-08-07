@@ -257,6 +257,7 @@ void EffectCellAutomaton::render() {
     glTexCoord2f(0, 1); glVertex2f(APPLY_PAN_ZOOM_X(-quadWidth), APPLY_PAN_ZOOM_Y( quadHeight));       // Top left
     glEnd();
 
+    // IO and keybind stuff
     // Fetch io
     ImGuiIO& io = ImGui::GetIO();
 
@@ -302,15 +303,17 @@ void EffectCellAutomaton::render() {
         }
     }
 
-    // If middle mouse is clicked and there has been some movement, pan the mouse
+    // Pan the mouse if middle mouse is clicked and there has been some movement
     if (ImGui::IsMouseDown(ImGuiMouseButton_Middle) && (io.MouseDelta.x != 0.0f || io.MouseDelta.y != 0.0f)) {
         // Delta gives you the difference in pixels, it has to be normalized to a percent first
         // Afterwards, it is linked with the aspect ratio of the texture, adapted to zoom and speed is added (if changed)
         panOffsetX += (io.MouseDelta.x / windowWidth) * (1 / quadWidth) / zoom * panSpeed;
-        panOffsetY += (-io.MouseDelta.y / windowHeight) * (1 / quadHeight) / zoom * panSpeed;
+        panOffsetY += (io.MouseDelta.y / windowHeight) * (1 / quadHeight) / zoom * panSpeed;
     }
 
-    glEnd();
+    // Change zoom if the user scrolled up or down
+    if (io.MouseWheel > 0.0f && !io.WantCaptureMouse)       zoom = max(zoom + zoomSpeed, 0.5f);
+    else if (io.MouseWheel < 0.0f && !io.WantCaptureMouse)  zoom = max(zoom - zoomSpeed, 0.5f);
 }
 
 // Override
@@ -324,8 +327,9 @@ void EffectCellAutomaton::effectSettings() {
         ImGui::Text("'Right Mouse' to set cell to dead");
         ImGui::Text("'Left Mouse' to set cell to alive");
 
-        ImGui::SliderFloat("Zoom", &zoom, 1.0f, 16.0f);
+        ImGui::SliderFloat("Zoom Speed", &zoomSpeed, 0.1f, 2.0f);
         ImGui::SliderFloat("Pan Speed", &panSpeed, 1.0f, 8.0f);
+        ImGui::SliderFloat("Zoom", &zoom, 0.5f, 32.0f);
         ImGui::SliderFloat("Pan X", &panOffsetX, -1.0f, 1.0f);
         ImGui::SliderFloat("Pan Y", &panOffsetY, -1.0f, 1.0f);
 
