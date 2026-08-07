@@ -93,8 +93,6 @@ bool EffectCellAutomaton::checkEvolution(int32_t row, int32_t col) {
  * Iterates over the board and creates a new generation on the new buffer. 
  */
 void EffectCellAutomaton::stepSimulation() {
-    Cell* origCell;
-    Cell* destCell;             
     bool willBeAlive = false;
     uint32_t newAliveCells = 0;
 
@@ -104,8 +102,9 @@ void EffectCellAutomaton::stepSimulation() {
     // Check for every cell, check how it progresses onto the next generation
     for (int i = 0; i < settings.rows; ++i) {
         for (int j = 0; j < settings.cols; ++j) {
-            origCell = &buffers[currentBuffer][i * settings.cols + j];
-            destCell = &buffers[nextBuffer][i * settings.cols + j];
+            uint32_t cell = i * settings.cols + j;
+            Cell* origCell = &buffers[currentBuffer][cell];
+            Cell* destCell = &buffers[nextBuffer][cell];
 
             // Calculate the state of the cell for the next generation
             willBeAlive = checkEvolution(i, j);
@@ -119,10 +118,10 @@ void EffectCellAutomaton::stepSimulation() {
 
             // Regenerate the colormap
             if (destCell->isAlive) {
-                colorMap[i * settings.cols + j] = 128;
+                colorMap[cell] = 128;
                 newAliveCells++;
             } else {
-                colorMap[i * settings.cols + j] = 0;
+                colorMap[cell] = 0;
             }
         }
     }
@@ -158,19 +157,21 @@ void EffectCellAutomaton::rescaleBoard() {
     // Init the board
     for (int i = 0; i < settings.rows; ++i) {
         for (int j = 0; j < settings.cols; ++j) {
+            uint32_t cell = i * settings.cols + j;
+
             // If randomization is enabled, set the board with random values
-            if (settings.randomizeCells) buffers[0][i * settings.cols + j].isAlive = rand() % 2;
-            else                buffers[0][i * settings.cols + j].isAlive = false;
+            if (settings.randomizeCells)    buffers[0][cell].isAlive = rand() % 2;
+            else                            buffers[0][cell].isAlive = false;
 
             // Count the cells
-            if (buffers[0][i * settings.cols + j].isAlive) aliveCells++;
+            if (buffers[0][cell].isAlive) aliveCells++;
 
             // Reset the age of each cell
-            buffers[0][i * settings.cols + j].age = 0;
+            buffers[0][cell].age = 0;
 
             // Init the colormap as well
-            if (buffers[0][i * settings.cols + j].isAlive)  colorMap[i * settings.cols + j] = 128;
-            else                                            colorMap[i * settings.cols + j] = 0;
+            if (buffers[0][cell].isAlive)   colorMap[cell] = 128;
+            else                            colorMap[cell] = 0;
         }
     }
 }
@@ -182,6 +183,13 @@ void EffectCellAutomaton::rescaleTexture() {
     // Free the previous texture
     // The initial value is 0, so this is fine the first time
     glDeleteTextures(1, &texture);
+
+    // On OpenGL, (-1, -1) represents the bottom-left corner by default, while on ImGUI and most other places, the origin is the TOP left corner. 
+    // This results in the Y axis being mirrored in some situations and requires a lot of weird conversions excusive to the Y axis.
+    // Instead of all that nonsense, set the origin to the top left corner to spare future headaches (i have already suffered a few because of this X_X)
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(-1, 1, 1, -1, -1, 1);
 
     // Generate and bind the new texture
     glGenTextures(1, &texture);
@@ -215,8 +223,7 @@ void EffectCellAutomaton::render() {
     }
     
     // If run is set to true and the pause has elapsed, step the simulation
-    if (runSimulation && 
-        steady_clock::now() - lastStepTimestamp >= milliseconds(settings.pauseBetweenSteps)) {
+    if (runSimulation && (steady_clock::now() - lastStepTimestamp >= milliseconds(settings.pauseBetweenSteps))) {
         stepSimulation();
     }
 
@@ -231,30 +238,68 @@ void EffectCellAutomaton::render() {
     float quadWidth = 1.0f;
     float quadHeight = 1.0f;
     float windowRatio = (float) windowWidth / (float) windowHeight;
-    float textureRatio = (float) settings.cols / settings.rows;
+    float textureRatio = (float) settings.cols / (float) settings.rows;
 
-    glBegin(GL_QUADS);
-
+    // If the texture is relatively wider than the window.
     if (textureRatio > windowRatio) {
-        // Texture is relatively wider than the window.
+        // Make the texture take up all the width and adjust the height
         quadHeight = windowRatio / textureRatio;
     } else {
-        // Texture is relatively taller than the window.
+        // Otherwise, scale the texture to take up all the vertical space and adapt it's width
         quadWidth = textureRatio / windowRatio;
     }
 
     // Draw the texture applying zoom and panning
-    glTexCoord2f(0, 1); glVertex2f((-quadWidth + quadWidth * panOffsetX) * zoom, (-quadHeight + quadHeight * panOffsetY) * zoom);       // Top left
-    glTexCoord2f(1, 1); glVertex2f(( quadWidth + quadWidth * panOffsetX) * zoom, (-quadHeight + quadHeight * panOffsetY) * zoom);       // Top right
-    glTexCoord2f(1, 0); glVertex2f(( quadWidth + quadWidth * panOffsetX) * zoom, ( quadHeight + quadHeight * panOffsetY) * zoom);       // Bottom right
-    glTexCoord2f(0, 0); glVertex2f((-quadWidth + quadWidth * panOffsetX) * zoom, ( quadHeight + quadHeight * panOffsetY) * zoom);       // Bottom left
+    glBegin(GL_QUADS);
+    glTexCoord2f(0, 0); glVertex2f(APPLY_PAN_ZOOM_X(-quadWidth), APPLY_PAN_ZOOM_Y(-quadHeight));       // Bottom left
+    glTexCoord2f(1, 0); glVertex2f(APPLY_PAN_ZOOM_X( quadWidth), APPLY_PAN_ZOOM_Y(-quadHeight));       // Bottom right
+    glTexCoord2f(1, 1); glVertex2f(APPLY_PAN_ZOOM_X( quadWidth), APPLY_PAN_ZOOM_Y( quadHeight));       // Top right
+    glTexCoord2f(0, 1); glVertex2f(APPLY_PAN_ZOOM_X(-quadWidth), APPLY_PAN_ZOOM_Y( quadHeight));       // Top left
+    glEnd();
 
     // Fetch io
     ImGuiIO& io = ImGui::GetIO();
 
-    // If there has been a click on the canvas (not on an ImGUI window)
+    // Set a cell to alive or dead if there has been a click on the canvas (not on an ImGUI window)
+    // This could be a function but requires much of the previous state; extraction is not practical.
     if ((ImGui::IsMouseDown(ImGuiMouseButton_Left) || ImGui::IsMouseDown(ImGuiMouseButton_Right)) && (!io.WantCaptureMouse)) {
-        // Calculate the cell that has been clicked
+        // Fetch the mouse info
+        ImVec2 mouse = ImGui::GetMousePos();
+        bool setAlive;
+
+        // Get the bottom left and top right coordinates of the board
+        float blX = APPLY_PAN_ZOOM_X(-quadWidth);
+        float blY = APPLY_PAN_ZOOM_Y(-quadHeight);
+        float trX = APPLY_PAN_ZOOM_X(quadWidth);
+        float trY = APPLY_PAN_ZOOM_Y(quadHeight);
+
+        // Calculate how far the click was from the center of the window
+        // ImGUI provides the values wrt. the top left corner, so it has to be normalized first to the center of the window.
+        // Additionally, the window is always 1:1 but the texture has different aspect ratio. The position must also account that
+        float posX = (mouse.x - windowWidth / 2) / (windowWidth / 2);
+        float posY = (mouse.y - windowHeight / 2) / (windowHeight / 2); 
+
+        // If the click was within the board
+        if (posX >= blX && posX <= trX && posY >= blY && posY <= trY) {
+            // Calculate in what point of the board the click happened (in %) and translate to columns and rows 
+            float column    = (posX - blX) / (trX - blX) * settings.cols;
+            float row       = (posY - blY) / (trY - blY) * settings.rows;
+            uint32_t cell   = (uint32_t) row * settings.cols + (uint32_t) column; 
+
+            // Set the state of the cell and regenerate the colormap
+            if (ImGui::IsMouseDown(ImGuiMouseButton_Left))  {
+                buffers[currentBuffer][cell].isAlive = true;
+                colorMap[cell] = 128;
+            } else {
+                buffers[currentBuffer][cell].isAlive = false;
+                colorMap[cell] = 0;
+            }
+
+            // Update the texture
+            glBindTexture(GL_TEXTURE_2D, texture);
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // if using 1-byte-per-pixel data
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, settings.cols, settings.rows, GL_RED, GL_UNSIGNED_BYTE, colorMap);
+        }
     }
 
     // If middle mouse is clicked and there has been some movement, pan the mouse
