@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <chrono>
+#include <algorithm>
 
 #define RED 0
 #define GREEN 1

@@ -79,6 +79,7 @@ private:
     bool boardChanged = false;                                          // If a change has been made to the settings of the board and regeneration has to be made.
     bool runSimulation = false;                                         // Runs the simulation indefinitely
     float zoom = 1.0f;                                                  // Canvas zoom
+    float zoomSpeed = 0.5f;                                             // The speed at which scrolling zooms in and out
     float panSpeed = 1.0f;                                              // The speed at which panning moves the board
     float panOffsetX = 0.0f;                                            // How offset is the texture in X and Y
     float panOffsetY = 0.0f;
