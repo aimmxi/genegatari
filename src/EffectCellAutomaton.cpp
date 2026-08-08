@@ -40,6 +40,14 @@ string EffectCellAutomaton::getPresetName(Preset p) {
     switch (p) {
         case PRESET_CONWAY:         return "Conway";
         case PRESET_HIGHLIFE:       return "Highlife";
+        case PRESET_DANCE:          return "Dance";
+        case PRESET_BACTERIA:       return "Bacteria";
+        case PRESET_VOTE:           return "Vote";
+        case PRESET_STAINS:         return "Stains";
+        case PRESET_LIFEGUARD2:     return "Lifeguard2";
+        case PRESET_DAYANDNIGHT:    return "Day and Night";
+        case PRESET_CORAL:          return "Coral";
+        case PRESET_WALLEDCITIES:   return "Walled Cities";
         default:                    return "Error in preset";
     }
 }
