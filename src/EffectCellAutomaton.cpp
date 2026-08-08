@@ -168,18 +168,18 @@ void EffectCellAutomaton::rescaleBoard() {
             uint32_t cell = i * settings.cols + j;
 
             // If randomization is enabled, set the board with random values
-            if (settings.randomizeCells)    buffers[0][cell].isAlive = rand() % 2;
-            else                            buffers[0][cell].isAlive = false;
+            if (settings.randomizeCells)    buffers[currentBuffer][cell].isAlive = rand() % 2;
+            else                            buffers[currentBuffer][cell].isAlive = false;
 
             // Count the cells
-            if (buffers[0][cell].isAlive) aliveCells++;
+            if (buffers[currentBuffer][cell].isAlive) aliveCells++;
 
             // Reset the age of each cell
-            buffers[0][cell].age = 0;
+            buffers[currentBuffer][cell].age = 0;
 
             // Init the colormap as well
-            if (buffers[0][cell].isAlive)   colorMap[cell] = 128;
-            else                            colorMap[cell] = 0;
+            if (buffers[currentBuffer][cell].isAlive)   colorMap[cell] = 128;
+            else                                        colorMap[cell] = 0;
         }
     }
 }
