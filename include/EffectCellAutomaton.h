@@ -24,6 +24,14 @@ private:
     enum Preset {
         PRESET_CONWAY,
         PRESET_HIGHLIFE,
+        PRESET_DANCE,
+        PRESET_BACTERIA,
+        PRESET_VOTE,
+        PRESET_STAINS,
+        PRESET_LIFEGUARD2,
+        PRESET_DAYANDNIGHT,
+        PRESET_CORAL,
+        PRESET_WALLEDCITIES,
         NUM_PRESETS,
     };
 
@@ -50,12 +58,47 @@ private:
     // Presets
     Criteria presets[NUM_PRESETS] = {
         {   // Conway
-            {   false,  false,  true,   false,  false,  false,  false,  false,  false},
-            {   false,  false,  true,   true,   false,  false,  false,  false,  false},
+            //  0  1  2  3  4  5  6  7  8
+            {   0, 0, 0, 1, 0, 0, 0, 0, 0},
+            {   0, 0, 1, 1, 0, 0, 0, 0, 0},
         },
         {   // HighLife
-            {   false,  false,  false,  true,   false,  false,  true,   false,  false},
-            {   false,  false,  true,   true,   false,  false,  false,  false,  false},
+            {   0, 0, 0, 1, 0, 0, 1, 0, 0},
+            {   0, 0, 1, 1, 0, 0, 0, 0, 0},
+        },
+        {   // Dance
+            {   0, 0, 0, 1, 1, 0, 0, 0, 0},
+            {   0, 0, 0, 1, 0, 1, 0, 0, 0},
+        },
+        {   // Bacteria
+            {   0, 0, 0, 1, 1, 0, 0, 0, 0},
+            {   0, 0, 0, 0, 1, 1, 1, 0, 0},
+        },
+        {   // Vote
+            {   0, 0, 0, 0, 0, 1, 1, 1, 1},
+            {   0, 0, 0, 0, 1, 1, 1, 1, 1},
+        },
+        {   // Stains
+            {   0, 0, 0, 1, 0, 0, 1, 1, 1},
+            {   0, 0, 1, 1, 0, 1, 1, 1, 1},
+        },
+        {   // Lifeguard2 (1 is boring)
+            {   0, 0, 0, 1, 0, 0, 0, 0, 0},
+            {   0, 0, 0, 0, 1, 1, 1, 1, 0},
+        },
+        {   // Day and Night
+            {   0, 0, 0, 1, 0, 0, 1, 1, 1},
+            {   0, 0, 0, 1, 1, 0, 1, 1, 1},
+        },
+        {   // Coral
+            //  0  1  2  3  4  5  6  7  8
+            {   0, 0, 0, 1, 0, 0, 0, 0, 0},
+            {   0, 0, 0, 0, 1, 1, 1, 1, 1},
+        },
+        {   // Walled Cities
+            //  0  1  2  3  4  5  6  7  8
+            {   0, 0, 0, 0, 1, 1, 1, 1, 1},
+            {   0, 0, 1, 1, 1, 1, 0, 0, 0},
         }
     };
 
