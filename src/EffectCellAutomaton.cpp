@@ -64,91 +64,6 @@ void EffectCellAutomaton::loadPreset(Preset p) {
 }
 
 /**
- * For a given cell, checks if it will be alive on the next generation. Represents the stencil operation of the simulation.
- * 
- * @param row The row of the cell
- * @param col The column of the cell
- * @return True if the next generation will be alive, false if dead.
- */
-bool EffectCellAutomaton::checkEvolution(int32_t row, int32_t col) {
-    uint8_t neighbours = 0;
-
-    // Iterate over every row
-    for (int i = (row - 1); i <= (row + 1); ++i) {
-        // If the row is out of bounds, jump to the next row.
-        if (i < 0 || i >= settings.rows) continue;
-
-        // Iterate over every cell (row and column)
-        for (int j = (col - 1); j <= (col + 1); ++j) {
-            // If the cell to check is out of bounds or it is the same cell we are trying to check, skip it
-            if (j < 0 || j >= settings.cols || (i == row && j == col)) continue;
-
-            // Check if the neighbouring cells are alive
-            if (buffers[currentBuffer][i * settings.cols + j].isAlive) neighbours++;
-        }
-    }
-
-    if (buffers[currentBuffer][row * settings.cols + col].isAlive) {
-        // If the cell is alive, check survival against the survival criteria
-        return criteria.survival[neighbours];
-    } else {
-        // If dead, check if it will be born based on the birth criteria
-        return criteria.birth[neighbours];
-    }
-}
-
-/**
- * Iterates over the board and creates a new generation on the new buffer. 
- */
-void EffectCellAutomaton::stepSimulation() {
-    bool willBeAlive = false;
-    uint32_t newAliveCells = 0;
-
-    // Calculate the next buffer
-    uint8_t nextBuffer = (currentBuffer + 1) % NUM_BUFFERS;
-
-    // Check for every cell, check how it progresses onto the next generation
-    for (int i = 0; i < settings.rows; ++i) {
-        for (int j = 0; j < settings.cols; ++j) {
-            uint32_t cell = i * settings.cols + j;
-            Cell* origCell = &buffers[currentBuffer][cell];
-            Cell* destCell = &buffers[nextBuffer][cell];
-
-            // Calculate the state of the cell for the next generation
-            willBeAlive = checkEvolution(i, j);
-
-            // Update the state and age
-            destCell->isAlive = willBeAlive;
-
-            // If the state is the same as previously, increase the age. Else reset it
-            if (origCell->isAlive == willBeAlive)   destCell->age = origCell->isAlive + 1;
-            else                                    destCell->age = 0;
-
-            // Regenerate the colormap
-            if (destCell->isAlive) {
-                colorMap[cell] = 128;
-                newAliveCells++;
-            } else {
-                colorMap[cell] = 0;
-            }
-        }
-    }
-
-    // Update the texture
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // if using 1-byte-per-pixel data
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, settings.cols, settings.rows, GL_RED, GL_UNSIGNED_BYTE, colorMap);
-
-    // Advance the generation and swap the buffer
-    generation++;
-    aliveCells = newAliveCells;
-    currentBuffer = nextBuffer;
-
-    // Update the finish time of the step
-    lastStepTimestamp = steady_clock::now();
-}
-
-/**
  * Frees and rescales the board when requested.
  */
 void EffectCellAutomaton::rescaleBoard() {
@@ -160,7 +75,7 @@ void EffectCellAutomaton::rescaleBoard() {
     // Allocate memory for the two main buffers and colormap
     buffers[0] = (Cell*) malloc(settings.cols * settings.rows * sizeof(Cell));
     buffers[1] = (Cell*) malloc(settings.cols * settings.rows * sizeof(Cell));
-    colorMap = (uint8_t*) malloc(settings.cols * settings.rows * sizeof(uint8_t));
+    colorMap = (uint32_t*) malloc(settings.cols * settings.rows * sizeof(uint32_t));
     
     // Init the board
     for (int i = 0; i < settings.rows; ++i) {
@@ -171,15 +86,16 @@ void EffectCellAutomaton::rescaleBoard() {
             if (settings.randomizeCells)    buffers[currentBuffer][cell].isAlive = rand() % 2;
             else                            buffers[currentBuffer][cell].isAlive = false;
 
-            // Count the cells
-            if (buffers[currentBuffer][cell].isAlive) aliveCells++;
-
-            // Reset the age of each cell
-            buffers[currentBuffer][cell].age = 0;
+            // Count the cells and reset their age
+            if (buffers[currentBuffer][cell].isAlive) {
+                aliveCells++;
+                buffers[currentBuffer][cell].age = 0;
+            } else {
+                buffers[currentBuffer][cell].age = colorUpToAge;
+            }
 
             // Init the colormap as well
-            if (buffers[currentBuffer][cell].isAlive)   colorMap[cell] = 128;
-            else                                        colorMap[cell] = 0;
+            updateCellColorMap(i, j);
         }
     }
 }
@@ -217,7 +133,140 @@ void EffectCellAutomaton::rescaleTexture() {
 
     // Map the colormap to the texture that will be rendered
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, settings.cols, settings.rows, 0, GL_RED, GL_UNSIGNED_BYTE, colorMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, settings.cols, settings.rows, 0, GL_RGBA, GL_UNSIGNED_BYTE, colorMap);
+}
+
+/**
+ * Checks the state of a cell and updates the colormap accordingly. Interpolates between the key colors of the palette.
+ * 
+ * @param row The row of the cell
+ * @param col The column of the cell
+ */
+void EffectCellAutomaton::updateCellColorMap(uint32_t row, uint32_t col) {
+    uint32_t cell = row * settings.cols + col;
+    uint8_t lowerChannels[4], upperChannels[4], finalChannels[4];
+    uint32_t colorRanges = PALETTE_STEPS - 1;           // The number of regions between palette key colors; where the interpolation should happen 
+
+    // The color gets calculated dynamically based on the range of age the cell is in, with respect to the colorUpToAge 
+    // For example, if the age is 12 and it should be colored up to 48, it should be at 25% of the gradient. 
+    // If there are 3 palette steps, the color should be midway between step floor(0.25 * (3 - 1)) (0) and ceil(0.25 * (3 - 1)) (1)
+    float position = (float) buffers[currentBuffer][cell].age / (float) colorUpToAge;
+
+    // Limit the position to be within the colormap, otherwise colors look really trippy
+    // I missed this edge case on the first working execution and the effect was really cool, so it is now a toggelable setting :P
+    if (position > 1.0f && !strobeOldCells) {
+        position = 1.0f;
+    }
+
+    uint32_t lowerStep = floor(position * colorRanges);
+    uint32_t upperStep = ceil(position * colorRanges);
+
+    // Normalize the position to the color range. AKA, calculate the position in that color range from 0 to 100% 
+    float normalizedPos = (position - (float) lowerStep / (float) colorRanges) * colorRanges;   
+
+    // Decompose the lower and upper colors into RGBA values
+    // Select the colors based on the state of the cell
+    if (buffers[currentBuffer][cell].isAlive) {
+        RGBAToChannels(palettes[selectedPalette].alive[lowerStep], lowerChannels);
+        RGBAToChannels(palettes[selectedPalette].alive[upperStep], upperChannels);
+    } else {
+        RGBAToChannels(palettes[selectedPalette].dead[lowerStep], lowerChannels);
+        RGBAToChannels(palettes[selectedPalette].dead[upperStep], upperChannels);
+    }
+
+    // Interpolate between the values of each channel
+    for (int i = 0; i < 4; ++i) {
+        finalChannels[i] = (upperChannels[i] - lowerChannels[i]) *  normalizedPos + lowerChannels[i];   // Advance the difference between lower and upper key color a normalizedPos percent  
+    }
+
+    // Assign the color to the cell
+    colorMap[cell] = channelsToRGBA(finalChannels);
+}
+
+/**
+ * For a given cell, checks if it will be alive on the next generation. Represents the stencil operation of the simulation.
+ * 
+ * @param row The row of the cell
+ * @param col The column of the cell
+ * @return True if the next generation will be alive, false if dead.
+ */
+bool EffectCellAutomaton::checkEvolution(uint32_t row, uint32_t col) {
+    uint8_t neighbours = 0;
+
+    // Iterate over every row
+    for (int i = (row - 1); i <= (row + 1); ++i) {
+        // If the row is out of bounds, jump to the next row.
+        if (i < 0 || i >= settings.rows) continue;
+
+        // Iterate over every cell (row and column)
+        for (int j = (col - 1); j <= (col + 1); ++j) {
+            // If the cell to check is out of bounds or it is the same cell we are trying to check, skip it
+            if (j < 0 || j >= settings.cols || (i == row && j == col)) continue;
+
+            // Check if the neighbouring cells are alive
+            if (buffers[currentBuffer][i * settings.cols + j].isAlive) neighbours++;
+        }
+    }
+
+    if (buffers[currentBuffer][row * settings.cols + col].isAlive) {
+        // If the cell is alive, check survival against the survival criteria
+        return criteria.survival[neighbours];
+    } else {
+        // If dead, check if it will be born based on the birth criteria
+        return criteria.birth[neighbours];
+    }
+}
+
+/**
+ * Iterates over the board and creates a new generation on the new buffer. 
+ */
+void EffectCellAutomaton::stepSimulation() {
+    bool willBeAlive = false;
+    uint32_t newAliveCells = 0;
+
+    // Calculate the next buffer
+    uint8_t nextBuffer = (currentBuffer + 1) % NUM_BUFFERS;
+
+    // Check for every cell, check how it progresses onto the next generation
+    for (uint32_t i = 0; i < settings.rows; ++i) {
+        for (uint32_t j = 0; j < settings.cols; ++j) {
+            uint32_t cell = i * settings.cols + j;
+            Cell* origCell = &buffers[currentBuffer][cell];
+            Cell* destCell = &buffers[nextBuffer][cell];
+
+            // Calculate the state of the cell for the next generation
+            willBeAlive = checkEvolution(i, j);
+
+            // Update the state and age
+            destCell->isAlive = willBeAlive;
+
+            // If the state is the same as previously, increase the age. Else reset it
+            if ((origCell->isAlive && willBeAlive) || (!origCell->isAlive && !willBeAlive)) {
+                destCell->age = origCell->age + 1;
+            } else {
+                destCell->age = 0;
+            }
+            
+            // Count alive cells
+            if (destCell->isAlive) newAliveCells++;
+
+            // Regenerate the colormap
+            updateCellColorMap(i, j);
+        }
+    }
+
+    // Update the texture
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // if using 1-byte-per-pixel data
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, settings.cols, settings.rows, GL_RGBA, GL_UNSIGNED_BYTE, colorMap);
+
+    // Advance the generation and swap the buffer
+    generation++;
+    aliveCells = newAliveCells;
+    currentBuffer = nextBuffer;
+
+    // Update the finish time of the step
+    lastStepTimestamp = steady_clock::now();
 }
 
 // Override
@@ -291,23 +340,20 @@ void EffectCellAutomaton::render() {
         // If the click was within the board
         if (posX >= blX && posX <= trX && posY >= blY && posY <= trY) {
             // Calculate in what point of the board the click happened (in %) and translate to columns and rows 
-            float column    = (posX - blX) / (trX - blX) * settings.cols;
-            float row       = (posY - blY) / (trY - blY) * settings.rows;
-            uint32_t cell   = (uint32_t) row * settings.cols + (uint32_t) column; 
+            uint32_t column     = (posX - blX) / (trX - blX) * settings.cols;
+            uint32_t row        = (posY - blY) / (trY - blY) * settings.rows;
+            uint32_t cell       = row * settings.cols + column; 
 
             // Set the state of the cell and regenerate the colormap
-            if (ImGui::IsMouseDown(ImGuiMouseButton_Left))  {
-                buffers[currentBuffer][cell].isAlive = true;
-                colorMap[cell] = 128;
-            } else {
-                buffers[currentBuffer][cell].isAlive = false;
-                colorMap[cell] = 0;
-            }
+            if (ImGui::IsMouseDown(ImGuiMouseButton_Left))  buffers[currentBuffer][cell].isAlive = true;
+            else                                            buffers[currentBuffer][cell].isAlive = false;
+            buffers[currentBuffer][cell].age = 0;
+            updateCellColorMap(row, column);
 
             // Update the texture
             glBindTexture(GL_TEXTURE_2D, texture);
             glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // if using 1-byte-per-pixel data
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, settings.cols, settings.rows, GL_RED, GL_UNSIGNED_BYTE, colorMap);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, settings.cols, settings.rows, GL_RGBA, GL_UNSIGNED_BYTE, colorMap);
         }
     }
 
@@ -355,6 +401,9 @@ void EffectCellAutomaton::effectSettings() {
             boardChanged = true;
         }
         ImGui::Checkbox("Randomize life on board change", &settings.randomizeCells);
+
+        ImGui::InputInt("Stop changing color at age", &colorUpToAge);
+        ImGui::Checkbox("Strobe old cells", &strobeOldCells);
 
         ImGui::Dummy(ImVec2(0.0f, 10.0f));
         ImGui::Separator();

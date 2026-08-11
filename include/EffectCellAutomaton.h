@@ -13,8 +13,9 @@ private:
     // Constants
     #define NUM_BUFFERS     2
     #define NUM_ADJ_CELLS   8
-    #define INITIAL_COLS    50
+    #define INITIAL_COLS    200
     #define INITIAL_ROWS    INITIAL_COLS
+    #define PALETTE_STEPS   3               // Maximum number of key colors in a palette
 
     // Formulas
     #define APPLY_PAN_ZOOM_X(original) ((original + quadWidth * panOffsetX) * zoom)
@@ -35,6 +36,12 @@ private:
         NUM_PRESETS,
     };
 
+    // Palettes
+    enum Palette {
+        PALETTE_REGULAR,
+        NUM_PALETTES,
+    };
+
     // The representation of a cell 
     struct Cell {
         uint32_t    age;
@@ -45,6 +52,12 @@ private:
     struct Criteria {
         bool    birth[NUM_ADJ_CELLS + 1];           // + 1 To indicate having no neighbours
         bool    survival[NUM_ADJ_CELLS + 1];
+    };
+
+    // Key color storage representing the palette
+    struct ColorPalette {
+        uint32_t    alive[PALETTE_STEPS];
+        uint32_t    dead[PALETTE_STEPS];
     };
 
     // Misc simulation settings
@@ -91,14 +104,20 @@ private:
             {   0, 0, 0, 1, 1, 0, 1, 1, 1},
         },
         {   // Coral
-            //  0  1  2  3  4  5  6  7  8
             {   0, 0, 0, 1, 0, 0, 0, 0, 0},
             {   0, 0, 0, 0, 1, 1, 1, 1, 1},
         },
         {   // Walled Cities
-            //  0  1  2  3  4  5  6  7  8
             {   0, 0, 0, 0, 1, 1, 1, 1, 1},
             {   0, 0, 1, 1, 1, 1, 0, 0, 0},
+        }
+    };
+
+    // Color palettes. ABGR instead of RGBA (sorry)
+    ColorPalette palettes[NUM_PALETTES] = {
+        {
+            { 0xFF1085F8, 0xFF24DC04, 0xFFFE7E03 },
+            { 0xFF67665D, 0xFF4B4A44, 0xFF2E2A2A },
         }
     };
 
@@ -117,7 +136,10 @@ private:
 
     // Rendering variables
     GLuint texture = 0;                                                 // The texture that will get rendered
-    uint8_t* colorMap = nullptr;                                        // Map representing the colors of each iteration
+    int32_t colorUpToAge = 32;                                          // At which age should cells stop changing color
+    bool strobeOldCells = false;                                        // Applies a strobing effect on old cells
+    Palette selectedPalette = (Palette) 0;                              // The selected palette
+    uint32_t* colorMap = nullptr;                                       // Map representing the colors of each iteration
     std::chrono::steady_clock::time_point lastStepTimestamp;            // When the last simulation step happened
     bool boardChanged = false;                                          // If a change has been made to the settings of the board and regeneration has to be made.
     bool runSimulation = false;                                         // Runs the simulation indefinitely
@@ -132,7 +154,8 @@ private:
     void loadPreset(Preset p);
     void rescaleBoard();
     void rescaleTexture();
-    bool checkEvolution(int32_t row, int32_t col);
+    void updateCellColorMap(uint32_t cell, uint32_t col);
+    bool checkEvolution(uint32_t row, uint32_t col);
     void stepSimulation();
 
 public:
