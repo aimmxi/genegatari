@@ -152,6 +152,7 @@ void EffectCellAutomaton::rescaleTexture() {
  * Updates the entire colormap.
  */
 void EffectCellAutomaton::updateColorMap() {
+    #pragma parallel for
     for (int i = 0; i < settings.rows; ++i) {
         for (int j = 0; j < settings.cols; ++j) {
             updateCellColorMap(i, j);
@@ -249,13 +250,13 @@ bool EffectCellAutomaton::checkEvolution(uint32_t row, uint32_t col) {
  * Iterates over the board and creates a new generation on the new buffer. 
  */
 void EffectCellAutomaton::stepSimulation() {
-    bool willBeAlive = false;
     uint32_t newAliveCells = 0;
 
     // Calculate the next buffer
     uint8_t nextBuffer = (currentBuffer + 1) % NUM_BUFFERS;
 
     // Check for every cell, check how it progresses onto the next generation
+    #pragma omp parallel for reduction(+:newAliveCells) 
     for (uint32_t i = 0; i < settings.rows; ++i) {
         for (uint32_t j = 0; j < settings.cols; ++j) {
             uint32_t cell = i * settings.cols + j;
@@ -263,7 +264,7 @@ void EffectCellAutomaton::stepSimulation() {
             Cell* destCell = &buffers[nextBuffer][cell];
 
             // Calculate the state of the cell for the next generation
-            willBeAlive = checkEvolution(i, j);
+            bool willBeAlive = checkEvolution(i, j);
 
             // Update the state and age
             destCell->isAlive = willBeAlive;
