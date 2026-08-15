@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Effect.h"  // Derived from Effect
-#include <cstddef>
 
 
 /**
@@ -11,11 +10,11 @@
 class EffectCellAutomaton : public Effect {
 private:
     // Constants
-    #define NUM_BUFFERS     2
-    #define NUM_ADJ_CELLS   8
-    #define INITIAL_COLS    200
-    #define INITIAL_ROWS    INITIAL_COLS
-    #define PALETTE_STEPS   3               // Maximum number of key colors in a palette
+    #define NUM_BUFFERS         2
+    #define NUM_ADJ_CELLS       8
+    #define INITIAL_COLS        200
+    #define INITIAL_ROWS        INITIAL_COLS
+    #define MAX_PALETTE_STEPS   5               // Maximum number of key colors in a palette
 
     // Formulas
     #define APPLY_PAN_ZOOM_X(original) ((original + quadWidth * panOffsetX) * zoom)
@@ -38,7 +37,9 @@ private:
 
     // Palettes
     enum Palette {
-        PALETTE_REGULAR,
+        PALETTE_DEFAULT,
+        PALETTE_FIREBLU,
+        PALETTE_SOLARIZED,
         NUM_PALETTES,
     };
 
@@ -56,8 +57,9 @@ private:
 
     // Key color storage representing the palette
     struct ColorPalette {
-        uint32_t    alive[PALETTE_STEPS];
-        uint32_t    dead[PALETTE_STEPS];
+        uint32_t    alive[MAX_PALETTE_STEPS];
+        uint32_t    dead[MAX_PALETTE_STEPS];
+        uint8_t     numSteps;
     };
 
     // Misc simulation settings
@@ -113,11 +115,22 @@ private:
         }
     };
 
-    // Color palettes. ABGR instead of RGBA (sorry)
+    // Color palettes. ABGR instead of RGBA because of little-endian (sorry)
     ColorPalette palettes[NUM_PALETTES] = {
         {
             { 0xFF1085F8, 0xFF24DC04, 0xFFFE7E03 },
             { 0xFF67665D, 0xFF4B4A44, 0xFF2E2A2A },
+            3
+        },
+        {
+            { 0xFF0908C7, 0xFF03039A },
+            { 0xFFFF4141, 0xFF6B0100 },
+            2
+        },
+        {
+            { 0xFFE3F6FD, 0xFFD5E8EE },
+            { 0xFF423607, 0xFF362B00 },
+            2
         }
     };
 
@@ -138,7 +151,7 @@ private:
     GLuint texture = 0;                                                 // The texture that will get rendered
     int32_t colorUpToAge = 32;                                          // At which age should cells stop changing color
     bool strobeOldCells = false;                                        // Applies a strobing effect on old cells
-    Palette selectedPalette = (Palette) 0;                              // The selected palette
+    Palette selectedPalette = PALETTE_DEFAULT;                          // The selected palette
     uint32_t* colorMap = nullptr;                                       // Map representing the colors of each iteration
     std::chrono::steady_clock::time_point lastStepTimestamp;            // When the last simulation step happened
     bool boardChanged = false;                                          // If a change has been made to the settings of the board and regeneration has to be made.
@@ -151,9 +164,11 @@ private:
 
     // Functions
     std::string getPresetName(Preset p);
+    std::string getPaletteName(Palette p);
     void loadPreset(Preset p);
     void rescaleBoard();
     void rescaleTexture();
+    void updateColorMap();
     void updateCellColorMap(uint32_t cell, uint32_t col);
     bool checkEvolution(uint32_t row, uint32_t col);
     void stepSimulation();

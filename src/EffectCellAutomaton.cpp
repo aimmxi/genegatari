@@ -33,7 +33,7 @@ EffectCellAutomaton::~EffectCellAutomaton() {
 }
 
 /**
- * Returns the name of the selected preset
+ * Returns the name of the selected preset.
  * @return The name of the preset in std::string format.
  */
 string EffectCellAutomaton::getPresetName(Preset p) {
@@ -52,6 +52,18 @@ string EffectCellAutomaton::getPresetName(Preset p) {
     }
 }
 
+/**
+ * Returns the name of the selected palette.
+ * @return The name of the palette in std::string format.
+ */
+string EffectCellAutomaton::getPaletteName(Palette p) {
+    switch (p) {
+        case PALETTE_DEFAULT:       return "Default";
+        case PALETTE_FIREBLU:       return "Fireblu";
+        case PALETTE_SOLARIZED:     return "Solarized";
+        default:                    return "Error in palette";
+    }
+}
 /**
  * Load the selected preset. 
  * @param p The preset to load.
@@ -93,11 +105,11 @@ void EffectCellAutomaton::rescaleBoard() {
             } else {
                 buffers[currentBuffer][cell].age = colorUpToAge;
             }
-
-            // Init the colormap as well
-            updateCellColorMap(i, j);
         }
     }
+
+    // Init the colormap
+    updateColorMap();
 }
 
 /**
@@ -137,6 +149,22 @@ void EffectCellAutomaton::rescaleTexture() {
 }
 
 /**
+ * Updates the entire colormap.
+ */
+void EffectCellAutomaton::updateColorMap() {
+    for (int i = 0; i < settings.rows; ++i) {
+        for (int j = 0; j < settings.cols; ++j) {
+            updateCellColorMap(i, j);
+        }
+    }
+
+    // Update the texture
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // if using 1-byte-per-pixel data
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, settings.cols, settings.rows, GL_RGBA, GL_UNSIGNED_BYTE, colorMap);
+}
+
+/**
  * Checks the state of a cell and updates the colormap accordingly. Interpolates between the key colors of the palette.
  * 
  * @param row The row of the cell
@@ -145,7 +173,7 @@ void EffectCellAutomaton::rescaleTexture() {
 void EffectCellAutomaton::updateCellColorMap(uint32_t row, uint32_t col) {
     uint32_t cell = row * settings.cols + col;
     uint8_t lowerChannels[4], upperChannels[4], finalChannels[4];
-    uint32_t colorRanges = PALETTE_STEPS - 1;           // The number of regions between palette key colors; where the interpolation should happen 
+    uint32_t colorRanges = palettes[selectedPalette].numSteps - 1;           // The number of regions between palette key colors; where the interpolation should happen 
 
     // The color gets calculated dynamically based on the range of age the cell is in, with respect to the colorUpToAge 
     // For example, if the age is 12 and it should be colored up to 48, it should be at 25% of the gradient. 
@@ -249,16 +277,10 @@ void EffectCellAutomaton::stepSimulation() {
             
             // Count alive cells
             if (destCell->isAlive) newAliveCells++;
-
-            // Regenerate the colormap
-            updateCellColorMap(i, j);
         }
     }
 
-    // Update the texture
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // if using 1-byte-per-pixel data
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, settings.cols, settings.rows, GL_RGBA, GL_UNSIGNED_BYTE, colorMap);
+    updateColorMap();
 
     // Advance the generation and swap the buffer
     generation++;
@@ -350,7 +372,7 @@ void EffectCellAutomaton::render() {
             buffers[currentBuffer][cell].age = 0;
             updateCellColorMap(row, column);
 
-            // Update the texture
+            // Update the texture manually
             glBindTexture(GL_TEXTURE_2D, texture);
             glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // if using 1-byte-per-pixel data
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, settings.cols, settings.rows, GL_RGBA, GL_UNSIGNED_BYTE, colorMap);
@@ -402,7 +424,21 @@ void EffectCellAutomaton::effectSettings() {
         }
         ImGui::Checkbox("Randomize life on board change", &settings.randomizeCells);
 
-        ImGui::InputInt("Stop changing color at age", &colorUpToAge);
+        if (ImGui::BeginCombo("Color Palette", getPaletteName((Palette) selectedPalette).c_str())) {
+            for (int i = 0; i < NUM_PALETTES; ++i) {
+                bool isSelected = (selectedPalette == i);
+
+                if (ImGui::Selectable(getPaletteName((Palette) i).c_str() , isSelected)) {
+                    selectedPalette = (Palette) i;
+
+                    // Regen the whole colormap
+                    updateColorMap();
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        if (ImGui::InputInt("Stop changing color at age", &colorUpToAge)) updateColorMap();
         ImGui::Checkbox("Strobe old cells", &strobeOldCells);
 
         ImGui::Dummy(ImVec2(0.0f, 10.0f));
