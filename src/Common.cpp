@@ -1,7 +1,5 @@
 #include "Common.h"
 
-SDL_Window* window = nullptr;
-
 /**
  * @brief Converts an array of 4 RGBA bytes to an RGBA pixel.
  * 

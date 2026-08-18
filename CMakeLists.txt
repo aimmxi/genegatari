@@ -17,6 +17,7 @@ set(PROJECT_SOURCES
     src/EffectNone.cpp
     src/EffectTest.cpp
     src/EffectPerlin.cpp
+    src/EffectCellAutomaton.cpp
     src/GUI.cpp
     src/Main.cpp
 )
@@ -45,13 +46,11 @@ find_package(OpenGL REQUIRED)
 find_package(SDL2 REQUIRED)
 find_package(SDL2_image REQUIRED)
 find_package(GLUT REQUIRED)
-find_package(GLEW REQUIRED)
 find_package(OpenMP REQUIRED)
 target_link_libraries(genegatari
     SDL2::SDL2
     SDL2_image::SDL2_image
     OpenGL::GL
     GLUT::GLUT
-    GLEW::GLEW
     OpenMP::OpenMP_CXX
 )

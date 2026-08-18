@@ -10,14 +10,18 @@
 #include <omp.h>
 #include <stdint.h>
 #include <string>
+#include <cstdlib>
+#include <ctime>
+#include <chrono>
+#include <algorithm>
 
 #define RED 0
 #define GREEN 1
 #define BLUE 2
 #define ALPHA 3
 
-
 extern SDL_Window* window;
+extern int32_t windowWidth, windowHeight;
 
 unsigned int channelsToRGBA(unsigned char* c);
 void RGBAToChannels(unsigned int p, unsigned char* c);
