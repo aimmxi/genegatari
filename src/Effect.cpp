@@ -13,7 +13,7 @@ const char* getEffectTypeName(EffectType e) {
         case PERLIN:            return "PERLIN";
         case CELLAUTOMATON:     return "CELLAUTOMATON";
         default:
-            fprintf(stderr, "Undefined EffectType\n");
+            print(ERROR, "Undefined EffectType\n");
             abort();
     }
 }

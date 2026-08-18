@@ -67,51 +67,50 @@ GUI::~GUI () {
 /**
  * @brief Renders the main window.
  */
-void GUI::mainWindow() {
+void GUI::menuBar() {
     // Calculate FPS
     unsigned int currentTime = SDL_GetTicks();
     frameTime = (currentTime - lastTime) / 1000.0f;     // ms to s
     lastTime = currentTime;
     fps = static_cast<int>(1.0f / frameTime);
 
-    if (ImGui::Begin("General settings", nullptr, ImGuiWindowFlags_NoCollapse)) {
-        ImGui::Text("Welcome to the general settings menu.");
-        ImGui::Text(" > To toggle the GUI press 'g'");
-        ImGui::Text(" > To toggle fullscreen press 'f'");
-
-        ImGui::Text("");
-        ImGui::Separator();
-        ImGui::Text("");
-
-        ImGui::Text("FPS: %d", fps);
-
-        ImGui::Text("");
-        ImGui::Separator();
-        ImGui::Text("");
-
-        // A drop down box gets inserted to select effects
-        if (ImGui::BeginCombo("Effect", getEffectTypeName(currentEffect))) {
+    if (ImGui::BeginMainMenuBar()) {
+        if (ImGui::BeginMenu("Effect")) {
             // For each effect
             for (int e = 0; e < NUM_EFFECT_TYPES; ++e) {
                 // A new item in the drop down gets inserted
-                if (ImGui::Selectable(getEffectTypeName((EffectType) e), (currentEffect == (EffectType) e))) {
+                if (ImGui::MenuItem(getEffectTypeName((EffectType) e))) {
                     // If the widget is selected, the effect gets changed
-                    printf("Switching to effect: %s\n", getEffectTypeName((EffectType) e));
                     currentEffect = (EffectType) e;
                     hasEffectChanged = true;
                 }
             }
-            ImGui::EndCombo();
-        }
-        
-        // A button to open the effect's config is added
-        if (ImGui::Button("Toggle effect's settings")) {
-            if (effect != nullptr) {
-                displayEffectSettings = !displayEffectSettings;
-            }
+
+            ImGui::Separator();
+
+            ImGui::MenuItem("Reload Effect", "Ctrl+R");
+            ImGui::MenuItem("Quit", "Ctrl+Q");
+
+            ImGui::EndMenu();
         }
 
-        ImGui::End();
+        if (ImGui::BeginMenu("View")) {
+            ImGui::MenuItem("Toggle GUI", "Ctrl+G");
+            ImGui::MenuItem("Toggle Fullscreen", "Crtl+F");
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Help")) {
+            ImGui::MenuItem("About This Effect", "Crtl+E");
+            ImGui::MenuItem("About Genegatari", "Ctrl+H");
+            ImGui::EndMenu();
+        }
+
+        // Send the FPS counter to the right of the top bar
+        ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::GetStyle().ItemSpacing.x - ImGui::CalcTextSize("000 FPS").x);
+        ImGui::Text("%d FPS", fps);
+
+        ImGui::EndMainMenuBar();
     }
 }
 
@@ -161,14 +160,11 @@ void GUI::renderBackground() {
  */
 void GUI::renderMenus() {
     if (displayGui) {
-        // Main config window
-        if (displayMainWindow) {
-            mainWindow();
-        }
+        // Main top menu bar
+        menuBar();
+
         // Effect settings menu
-        if (displayEffectSettings) {
-            effect->effectSettings();
-        }
+        effect->effectSettings();
     }
 }
 
@@ -179,16 +175,15 @@ void GUI::renderMenus() {
 void GUI::checkKeyPresses() {
     ImGuiIO& io = ImGui::GetIO();
 
-    // Listen for G and toggle GUI windows
-    if (ImGui::IsKeyPressed(ImGuiKey_G)) {
-        printf("Toggling GUI\n");
+    // Toggle GUI
+    if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_G)) {
+        print(INFO, "Toggling GUI\n");
         displayGui = !displayGui;
     }
 
-    // Listen for F1 and toggle fullscreen
-    if (ImGui::IsKeyPressed(ImGuiKey_F)) {
-        printf("Toggling fullscreen\n");
-
+    // Toggle Fullscreen
+    if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_F)) {
+        print(INFO, "Toggling fullscreen\n");
         if (isFullscreen) {
             // Switch to windowed mode
             SDL_SetWindowFullscreen(window, 0); 

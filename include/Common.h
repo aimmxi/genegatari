@@ -14,6 +14,8 @@
 #include <ctime>
 #include <chrono>
 #include <algorithm>
+#include <cstdio>
+#include <cstdarg>
 
 #define RED 0
 #define GREEN 1
@@ -23,5 +25,16 @@
 extern SDL_Window* window;
 extern int32_t windowWidth, windowHeight;
 
+enum PrintType {
+    INFO,
+    WARNING,
+    ERROR,
+    NUM_PRINT_TYPES
+};
+
+// Prints
+void print(PrintType t, const char* f, ...);
+
+// Colors
 unsigned int channelsToRGBA(unsigned char* c);
 void RGBAToChannels(unsigned int p, unsigned char* c);

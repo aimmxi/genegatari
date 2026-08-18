@@ -1,12 +1,7 @@
 #include "EffectTest.h" 
 
-EffectTest::EffectTest() {
-    printf("EffectTest created!\n");
-}
-
-EffectTest::~EffectTest() {
-    printf("EffectTest destroyed!\n");
-}
+EffectTest::EffectTest() {}
+EffectTest::~EffectTest() {}
 
 // Override
 void EffectTest::render() {
@@ -19,7 +14,7 @@ void EffectTest::render() {
 
     // Apply rotation
     rotationAngle = rotationAngle + rotationSpeed;
-    printf("Angle=%f\n", rotationAngle);
+    print(INFO, "Angle=%f\n", rotationAngle);
 
     glRotatef(rotationAngle, 0.0f, 0.0f, 1.0f);
 

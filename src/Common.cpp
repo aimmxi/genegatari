@@ -1,5 +1,25 @@
 #include "Common.h"
 
+
+void print(PrintType t, const char* f, ...) {
+    switch (t) {
+        case (INFO):
+            printf("info: ");
+            break;
+        case (WARNING):
+            printf("warn: ");
+            break;
+        case (ERROR):
+            fprintf(stderr, "error: ");
+            break;
+    }
+
+    va_list args;
+    va_start(args, f);
+    vprintf(f, args);
+    va_end(args);
+}
+
 /**
  * @brief Converts an array of 4 RGBA bytes to an RGBA pixel.
  * 

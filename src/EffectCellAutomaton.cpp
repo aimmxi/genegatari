@@ -24,13 +24,9 @@ EffectCellAutomaton::EffectCellAutomaton() {
 
     // After generating the colormap, generate the texture
     rescaleTexture();
-
-    printf("EffectCellAutomaton created!\n");
 }
 
-EffectCellAutomaton::~EffectCellAutomaton() {
-    printf("EffectCellAutomaton destroyed!\n");
-}
+EffectCellAutomaton::~EffectCellAutomaton() {}
 
 /**
  * Returns the name of the selected preset.

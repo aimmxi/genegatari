@@ -26,8 +26,6 @@ class GUI {
         EffectType currentEffect;
         Effect* effect = nullptr;
         bool displayGui = true;
-        bool displayMainWindow = true;
-        bool displayEffectSettings = false;
         bool hasEffectChanged = false;
         bool isFullscreen = false;
     
@@ -35,7 +33,7 @@ class GUI {
         float frameTime = 0.0f;
         unsigned int lastTime = 0;
         unsigned int fps = 0;
-        void mainWindow();
+        void menuBar();
     
     public:
         GUI();
