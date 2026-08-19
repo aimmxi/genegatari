@@ -23,29 +23,36 @@ GUI::GUI() {
 
     // Create main window in a hidden state
     window = SDL_CreateWindow(NAME, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, INITIAL_WIDTH, INITIAL_HEIGHT, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
-    gl_context = SDL_GL_CreateContext(window);
-    SDL_GL_MakeCurrent(window, gl_context);
+    glContext = SDL_GL_CreateContext(window);
+    SDL_GL_MakeCurrent(window, glContext);
     SDL_GL_SetSwapInterval(1); // Enable vsync
     
-    // Set SDL's icon
-    // TODO Embed the icon in the application itself instead of using routes.
-    // SDL_Surface* icon = IMG_Load("../resources/icon.png");
-    // if (icon == nullptr) {
-    //     std::cerr << "Error loading icon: " << IMG_GetError() << std::endl;
-    //     exit(EXIT_FAILURE);
-    // }
-    // SDL_SetWindowIcon(window, icon);
-    // SDL_FreeSurface(icon);
+    // Create a surface with the icon data and set the icon
+    SDL_Surface* iconSurface = SDL_CreateRGBSurfaceFrom((void*) iconData.pixelData, iconData.width, iconData.height, 32, iconData.width * 4, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+
+    if (iconSurface) {
+        SDL_SetWindowIcon(window, iconSurface);
+        SDL_FreeSurface(iconSurface);
+    }
+
+    // Also load the image to a texture for future use
+    glGenTextures(1, &iconTexture);
+    glBindTexture(GL_TEXTURE_2D, iconTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, iconData.width, iconData.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, iconData.pixelData);
     
     // ImGui setup
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
+    
+    // Change the accent color
+    applyAccentColor(accentColor);
 
-    // Additional setuo
-    const char* glsl_version = "#version 130";
-    ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
-    ImGui_ImplOpenGL3_Init(glsl_version);
+    // Additional setup
+    ImGui_ImplSDL2_InitForOpenGL(window, glContext);
+    ImGui_ImplOpenGL3_Init("#version 130");
     glEnable(GL_TEXTURE_2D);
 
     // The none effect is created
