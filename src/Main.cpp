@@ -37,6 +37,9 @@ int main(int, char**) {
         glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         SDL_GL_SwapWindow(window);
+
+        // Handle quit signals
+        if (gui->quit) break;
     }
 
     return 0;

@@ -24,6 +24,7 @@ set(PROJECT_SOURCES
 
 # ImGui source files
 set(IMGUI_SOURCES
+    lib/imgui/imgui_demo.cpp
     lib/imgui/imgui.cpp
     lib/imgui/imgui_draw.cpp
     lib/imgui/imgui_tables.cpp
