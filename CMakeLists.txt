@@ -9,6 +9,7 @@ set(CMAKE_BUILD_TYPE Debug)
 include_directories(include)
 include_directories(lib/imgui)
 include_directories(lib/imgui/backends)
+include_directories(lib/CLI11)
 
 # Project source files
 set(PROJECT_SOURCES
