@@ -4,7 +4,11 @@
 SDL_Window* window = nullptr;
 int32_t windowWidth, windowHeight;
 
-GUI::GUI() {
+/**
+ * @brief Construct a new GUI::GUI object
+ * @param e The effect to load initially 
+ */
+GUI::GUI(EffectType newEffect) {
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) print(ERROR, "%s\n", SDL_GetError());
     IMG_Init(IMG_INIT_PNG);
@@ -57,8 +61,9 @@ GUI::GUI() {
     ImGui_ImplOpenGL3_Init("#version 130");
     glEnable(GL_TEXTURE_2D);
 
-    // The none effect is created
-    effect = new EffectNone();
+    // Create the new effect
+    currentEffect = newEffect;
+    switchEffect(effect, currentEffect);
 }
 
 GUI::~GUI() {}
@@ -78,7 +83,7 @@ void GUI::menuBar() {
 
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
-            ImGui::MenuItem("Reload Effect", "Ctrl+R");
+            if (ImGui::MenuItem("Reload Effect", "Ctrl+R")) switchEffect(effect, currentEffect);
 
             ImGui::Separator();
 
@@ -87,8 +92,8 @@ void GUI::menuBar() {
                 // A new item in the drop down gets inserted
                 if (ImGui::MenuItem(getEffectTypeName((EffectType) e))) {
                     // If the widget is selected, the effect gets changed
+                    switchEffect(effect, (EffectType) e);
                     currentEffect = (EffectType) e;
-                    hasEffectChanged = true;
                 }
             }
 
@@ -275,37 +280,9 @@ void GUI::renderBackground() {
     // Get the current resolution of the main window
     SDL_GetWindowSize(window, &windowWidth, &windowHeight);
 
-    // If a different effect has been picked, it gets instantiated.
-    if (hasEffectChanged) {
-        // If there is an old instance of an effect, it gets deleted before creating a new one
-        if (effect != nullptr) delete effect;
-
-        // The new effect is instantiated
-        switch (currentEffect) {
-            case NONE:
-                effect = new EffectNone();
-                break;
-            case TEST:
-                effect = new EffectTest();
-                break;
-            case PERLIN:
-                effect = new EffectPerlin();
-                break;
-            case CELLAUTOMATON:
-                effect = new EffectCellAutomaton();
-                break;
-            default:
-                fprintf(stderr, "Undefined EffectType\n");
-                abort();
-        }
-
-        hasEffectChanged = false;
-    }
     
-    // And gets rendered
-    if (effect != nullptr){
-        effect->render();
-    }
+    // Render the effect
+    if (effect != nullptr) effect->render();
 }
 
 /**
@@ -332,6 +309,7 @@ void GUI::checkKeyPresses() {
     ImGuiIO& io = ImGui::GetIO();
 
     // File
+    if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_R))  switchEffect(effect, currentEffect);
     if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Q))  quit = true;
 
     // View

@@ -1,4 +1,4 @@
-#include "EffectCellAutomaton.h" 
+#include "Effects/EffectCellAutomaton.h" 
 
 using namespace std;
 using namespace std::chrono;
@@ -394,22 +394,20 @@ void EffectCellAutomaton::effectSettings() {
     if (ImGui::Begin("Life-Like Cellular Automaton Effect", nullptr, ImGuiWindowFlags_NoCollapse)) {
         ImGui::Text("Life-Like Cellular Automaton Effect");
         ImGui::Dummy(ImVec2(0.0f, 10.0f));
-        ImGui::Separator();
-        ImGui::Text(" > Controls");
-        ImGui::Text("'Middle Mouse' to pan");
-        ImGui::Text("'Right Mouse' to set cell to dead");
-        ImGui::Text("'Left Mouse' to set cell to alive");
 
-        ImGui::SliderFloat("Zoom Speed", &zoomSpeed, 0.1f, 2.0f);
-        ImGui::SliderFloat("Pan Speed", &panSpeed, 1.0f, 8.0f);
-        ImGui::SliderFloat("Zoom", &zoom, 0.5f, 32.0f);
-        ImGui::SliderFloat("Pan X", &panOffsetX, -1.0f, 1.0f);
-        ImGui::SliderFloat("Pan Y", &panOffsetY, -1.0f, 1.0f);
+        if (ImGui::CollapsingHeader("Controls")) {
+            ImGui::Text("'Middle Mouse' to pan");
+            ImGui::Text("'Right Mouse' to set cell to dead");
+            ImGui::Text("'Left Mouse' to set cell to alive");
 
-        ImGui::Dummy(ImVec2(0.0f, 10.0f));
-        ImGui::Separator();
+            ImGui::SliderFloat("Zoom Speed", &zoomSpeed, 0.1f, 2.0f);
+            ImGui::SliderFloat("Pan Speed", &panSpeed, 1.0f, 8.0f);
+            ImGui::SliderFloat("Zoom", &zoom, 0.5f, 32.0f);
+            ImGui::SliderFloat("Pan X", &panOffsetX, -1.0f, 1.0f);
+            ImGui::SliderFloat("Pan Y", &panOffsetY, -1.0f, 1.0f);
+        }
+
         ImGui::Text(" > Board Settings");
-        ImGui::Dummy(ImVec2(0.0f, 10.0f));
 
         boardChanged = boardChanged || ImGui::InputInt("Board Width", &settings.cols);
         boardChanged = boardChanged || ImGui::InputInt("Board Height", &settings.rows);

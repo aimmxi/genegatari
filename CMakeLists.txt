@@ -14,13 +14,14 @@ include_directories(lib/CLI11)
 # Project source files
 set(PROJECT_SOURCES
     src/Common.cpp
-    src/Effect.cpp
-    src/EffectNone.cpp
-    src/EffectTest.cpp
-    src/EffectPerlin.cpp
-    src/EffectCellAutomaton.cpp
+    src/EffectFactory.cpp
     src/GUI.cpp
     src/Main.cpp
+)
+
+# All the effects
+file(GLOB EFFECT_SOURCES
+    "src/Effects/*.cpp"
 )
 
 # ImGui source files
@@ -37,6 +38,7 @@ set(IMGUI_SOURCES
 # Combine both
 add_executable(genegatari
     ${PROJECT_SOURCES}
+    ${EFFECT_SOURCES}
     ${IMGUI_SOURCES}
 )
 

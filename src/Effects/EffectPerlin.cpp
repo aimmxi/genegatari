@@ -1,4 +1,4 @@
-#include "EffectPerlin.h" 
+#include "Effects/EffectPerlin.h" 
 
 // Ken's original permutation table
 static const int permutation[PERM_TABLE_SIZE] = {

@@ -1,10 +1,24 @@
-#include "GUI.h"
+#include "Main.h"
 
-#include <iostream>
+int main(int argc, char** argv) {
+    std::string requestedEffect = "NONE";
 
-int main(int, char**) {
+    // Parse the arguments
+    CLI::App app{NAME " " VERSION "\n" DESCRIPTION};
+    argv = app.ensure_utf8(argv);
+
+    // TODO
+    app.add_flag("-e,--effect", requestedEffect, "Name of the effect to load upon startup")
+        ->check(CLI::IsMember(effectNames));
+
+    try {
+        app.parse(argc, argv);
+    } catch (const CLI::ParseError &e) {
+        std::exit(app.exit(e));
+    }
+
     // A GUI and renderer are created
-    GUI* gui = new GUI();
+    GUI* gui = new GUI(getEffectTypeFromName(requestedEffect));
     ImGuiIO& io = ImGui::GetIO();
 
     // Main loop

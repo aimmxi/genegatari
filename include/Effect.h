@@ -2,17 +2,6 @@
 
 #include "Common.h"
 
-// List of effects
-typedef enum {
-    NONE,
-    TEST,
-    PERLIN,
-    CELLAUTOMATON,
-    NUM_EFFECT_TYPES
-} EffectType;
-
-const char* getEffectTypeName(EffectType e);
-
 /**
  * @class Effect
  * @brief Abstract class that should be implemented by every effect.

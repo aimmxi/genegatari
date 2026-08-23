@@ -1,14 +1,8 @@
 #pragma once
 
 #include "Common.h"
+#include "EffectFactory.h"
 #include <vector>
-
-// Effects
-#include "Effect.h"
-#include "EffectNone.h"
-#include "EffectTest.h"
-#include "EffectPerlin.h"
-#include "EffectCellAutomaton.h"
 
 // Constants
 // Window
@@ -29,7 +23,6 @@ class GUI {
         EffectType currentEffect;
         Effect* effect = nullptr;
         bool displayGui = true;
-        bool hasEffectChanged = false;
         bool isFullscreen = false;
 
         bool renderAboutGenegatari = false;
@@ -53,7 +46,7 @@ class GUI {
         SDL_GLContext glContext;
         bool quit = false;
 
-        GUI();
+        GUI(EffectType newEffect);
         ~GUI();
         void renderBackground();
         void renderMenus();
